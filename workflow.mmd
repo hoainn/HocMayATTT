@@ -1,0 +1,127 @@
+flowchart TD
+    %% DATA SOURCES
+    IDS18["📂 CIC-IDS 2018\n02-16-2018.csv · 02-21-2018.csv\nsample 100k rows/file"]
+    DDoS19["📂 CIC-DDoS 2019\n17 Parquet files · all rows\n431,371 rows raw"]
+
+    %% PHASE 1
+    subgraph PH1["PHASE 1 — FAMS Feature Selection  (CIC-IDS 2018)"]
+        direction TB
+
+        L1["① Load & Harmonise\n• Read CSV, strip whitespace\n• Rename 48 abbreviated cols → canonical\n• Drop duplicate-header rows\n• Drop Timestamp + Destination Port"]
+
+        PP1["② Preprocess\n• Coerce object cols → numeric\n• Replace ±∞ → NaN → dropna\n• Drop duplicate rows\n→ 77 numeric feature candidates"]
+
+        ENC["③ Binary Label Encoding\nBENIGN → 0     any attack → 1"]
+
+        SPL["④ Stratified Split  70 / 30"]
+
+        SCL["⑤ MinMaxScaler\nfit on Train only → transform Train & Test"]
+
+        SMO["⑥ SMOTE  (train only)\nApply if imbalance ratio > 2:1"]
+
+        subgraph FS["⑦  5 Feature Selection Methods  —  top-25 each"]
+            direction LR
+            M1["🔹 Variance\nFilter\nRank by σ²"]
+            M2["🔹 Mutual\nInformation\nMI score"]
+            M3["🔹 RFE\nBackward Elim.\nDecisionTree\nstep=3"]
+            M4["🔹 Lasso L1\nLogReg C=0.1\nrank by coef"]
+            M5["🔹 RF\nImportance\n50 trees\ndepth=10"]
+        end
+
+        VOTE["⑧ FAMS Vote Aggregation\nKeep features with votes > 3  ≥4 of 5 methods\n─────────────────────────────────────────\n✅  8 FINAL FEATURES\nBwd Pkt Len Std · Fwd Pkt Len Std · Fwd Pkt Len Max\nSubflow Fwd Bytes · Fwd Header Len · Init Fwd Win Bytes\nSubflow Fwd Pkts · Fwd Pkt Len Mean"]
+    end
+
+    %% PHASE 2
+    subgraph PH2["PHASE 2 — Group-Based Generalisation  (CIC-DDoS 2019)"]
+        direction TB
+
+        L2["① Load 17 Parquet files\n• Normalise labels: DrDoS_X→X, UDP-lag→UDPLag\n• Select 8 FAMS features + Label"]
+
+        PP2["② Preprocess\n• Coerce types · replace inf · dropna · dedup\n• Binary label_bin   BENIGN=0  attack=1\n• Assign Group column\n→ 45,708 clean rows"]
+
+        subgraph GRP["③ Attack Group Assignment"]
+            direction LR
+            G1["G1 — UDP Amplification\nDNS · NTP · SNMP · UDP · UDPLag\n13,477 attack rows"]
+            G2["G2 — App Protocol\nLDAP · MSSQL · NetBIOS · Portmap · TFTP\n10,868 attack rows"]
+            G3["G3 — Flooding\nSyn · WebDDoS\n191 attack rows"]
+            BN["Benign\n21,172 rows"]
+        end
+
+        BSPLIT["④ Disjoint Benign Split  once before all experiments\nben_train = 14,820  70%     ben_test = 6,352  30%\nSame split reused → no Benign overlap across train/test"]
+
+        subgraph E1["Exp 1 · Train G1 → Test G2+G3"]
+            direction LR
+            E1A["Build\nTrain: 28,297\nTest:  17,411"]
+            E1B["Scale\nMinMaxScaler\nno SMOTE"]
+            E1C["Optuna\n30 trials TPE\nsubsample 50k"]
+            E1D["5-fold CV\nbest params\ncap 100k"]
+            E1E["✅ Results\nKNN F1=0.990\nRF  F1=0.990\nXGB F1=0.990"]
+        end
+
+        subgraph E2["Exp 2 · Train G2 → Test G1+G3"]
+            direction LR
+            E2A["Build\nTrain: 25,688\nTest:  20,020"]
+            E2B["Scale\nMinMaxScaler\nno SMOTE"]
+            E2C["Optuna\n30 trials TPE\nsubsample 50k"]
+            E2D["5-fold CV\nbest params\ncap 100k"]
+            E2E["✅ Results\nKNN F1=0.982\nRF  F1=0.984\nXGB F1=0.984"]
+        end
+
+        subgraph E3["Exp 3 · Train G3 → Test G1+G2  ⚠"]
+            direction LR
+            E3A["Build\nTrain: 15,011\nTest:  30,697\n⚠ 191 attacks only"]
+            E3B["Scale\n+ SMOTE ✅\n191→14,820"]
+            E3C["Optuna\n30 trials TPE\nsubsample 50k"]
+            E3D["5-fold CV\nCV F1≈0.98"]
+            E3E["⚠ Fail\nKNN F1=0.783\nRF  F1=0.561\nXGB F1=0.688\ngap +0.20~0.43"]
+        end
+    end
+
+    %% RESULTS
+    subgraph RES["RESULTS & VISUALISATION"]
+        direction LR
+        R1["📊 Summary\nHeatmap\nCV vs Test F1"]
+        R2["📈 ROC\nCurves\nper experiment"]
+        R3["🔲 Confusion\nMatrices\nbest model"]
+        R4["📦 K-fold\nBoxplot\nfold distribution"]
+        R5["🌲 Feature\nImportance\nRF & XGB"]
+        R6["🔍 Optuna\nHistory\n3×3 grid"]
+        R7["⚖️ Gap\nAnalysis\nCV−Test F1"]
+    end
+
+    %% EDGES
+    IDS18 --> L1 --> PP1 --> ENC --> SPL --> SCL --> SMO
+    SMO --> M1 & M2 & M3 & M4 & M5 --> VOTE
+
+    DDoS19 --> L2
+    VOTE -- "8 FAMS features" --> L2
+    L2 --> PP2 --> G1 & G2 & G3 & BN
+    BN --> BSPLIT
+
+    BSPLIT --> E1A & E2A & E3A
+    G1 --> E1A
+    G2 & G3 -.->|unseen test| E1A
+    G2 --> E2A
+    G1 & G3 -.->|unseen test| E2A
+    G3 --> E3A
+    G1 & G2 -.->|unseen test| E3A
+
+    E1A --> E1B --> E1C --> E1D --> E1E
+    E2A --> E2B --> E2C --> E2D --> E2E
+    E3A --> E3B --> E3C --> E3D --> E3E
+
+    E1E & E2E & E3E --> R1 & R2 & R3 & R4 & R5 & R6 & R7
+
+    %% Styling
+    style PH1 fill:#e8f4fd,stroke:#2196F3,stroke-width:2px
+    style PH2 fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
+    style RES fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+    style FS fill:#f3e5f5,stroke:#9C27B0,stroke-width:1px
+    style GRP fill:#e0f2f1,stroke:#009688,stroke-width:1px
+    style E1 fill:#e3f2fd,stroke:#1565C0,stroke-width:1px
+    style E2 fill:#e3f2fd,stroke:#1565C0,stroke-width:1px
+    style E3 fill:#fff8e1,stroke:#F57F17,stroke-width:2px
+    style VOTE fill:#c8e6c9,stroke:#388E3C,stroke-width:2px
+    style E3E fill:#ffccbc,stroke:#BF360C,stroke-width:2px
+    style E1E fill:#c8e6c9,stroke:#2E7D32,stroke-width:2px
+    style E2E fill:#c8e6c9,stroke:#2E7D32,stroke-width:2px
