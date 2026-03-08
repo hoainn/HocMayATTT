@@ -1,0 +1,103 @@
+\documentclass[conference,a4paper]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% --- Cấu hình tiếng Việt ---
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+% --- Việt hóa tiêu đề chuẩn IEEE ---
+\renewcommand{\IEEEkeywordsname}{Từ khóa}
+
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage[table]{xcolor}
+\usepackage{multirow}
+\usepackage{dblfloatfix}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\colorlet{punct}{red!60!black}
+\definecolor{background}{HTML}{EEEEEE}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily,
+    numbers=left,
+    numberstyle=\scriptsize,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=lines,
+    backgroundcolor=\color{background},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
+
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{
+  shapes.multipart,
+  matrix,
+  positioning,
+  shapes.callouts,
+  shapes.arrows,
+  calc}
+\usepackage{pgfplots}
+\usepackage{lineno}
+\usepackage[hidelinks]{hyperref}
+\usepackage[all]{hypcap}
+\usepackage{subfig}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\SetKwInput{KwInput}{Đầu vào}
+\SetKwInput{KwOutput}{Đầu ra}
+\SetKwInput{KwInit}{Khởi tạo}
+
+\begin{document}
+
+\title{Đánh giá khả năng tổng quát hóa của mô hình học máy trong phát hiện DDoS theo nhóm tấn công}
+
+\author{\IEEEauthorblockN{Nguyễn Đình Quân, Nguyễn Trần Hoàng Long, và Nguyễn Ngọc Hoài}
+\IEEEauthorblockA{\textit{Học viện Kỹ thuật Mật mã (Academy of Cryptography Techniques)} \\
+Hà Nội, Việt Nam \\
+\{CHAT4P015, CHAT4P009, CHAT4P006\}@actvn.edu.vn}
+}
+
+\maketitle
+
+% --- Cấu trúc báo cáo: các chương nằm trong thư mục chapters/ ---
+\input{chapters/01-tom-tat}
+\input{chapters/02-gioi-thieu}
+\input{chapters/03-cong-trinh-lien-quan}
+\input{chapters/04-phuong-phap}
+\input{chapters/05-thuc-nghiem}
+\input{chapters/06-ket-luan}
+
+% Chỉ in tài liệu được trích dẫn trong bài. Để in toàn bộ .bib, bỏ comment dòng dưới.
+% \nocite{*}
+
+\bibliographystyle{IEEEtran}
+\bibliography{reference}
+
+\end{document}

@@ -1,0 +1,7 @@
+\begin{abstract}
+Báo cáo này trình bày quá trình xây dựng và đánh giá một pipeline hai giai đoạn ứng dụng học máy vào bài toán phát hiện tấn công từ chối dịch vụ phân tán (DDoS). Giai đoạn một thực hiện lựa chọn đặc trưng theo khung FAMS trên tập dữ liệu tổng hợp CIC DoS 2016, CIC IDS 2017 và CIC IDS 2018, sử dụng cơ chế bỏ phiếu từ năm phương pháp lựa chọn độc lập để xác định tập đặc trưng gọn và có tính đại diện cao. Giai đoạn hai huấn luyện và đánh giá ba mô hình phân loại — K-Nearest Neighbors, Random Forest và XGBoost — trên bộ dữ liệu CIC-DDoS 2019 với chuẩn hóa RobustScaler và tối ưu siêu tham số bằng Optuna theo độ đo F2. Thiết kế thực nghiệm theo hướng kiểm tra khả năng tổng quát hóa giữa nhóm tấn công: mỗi lần huấn luyện trên một nhóm (Reflection, Volume, Exploitation) rồi kiểm thử trên các nhóm còn lại. Kết quả cho thấy các mô hình dựa trên cây quyết định (Random Forest, XGBoost) tổng quát hóa tốt hơn KNN trên các nhóm tấn công chưa thấy trong quá trình huấn luyện, đặc biệt rõ rệt khi huấn luyện trên nhóm Exploitation. Hiệu năng phát hiện phụ thuộc đáng kể vào mức độ tương đồng đặc trưng giữa nhóm huấn luyện và nhóm kiểm thử, qua đó làm nổi bật tầm quan trọng của chiến lược lựa chọn dữ liệu huấn luyện đa dạng trong triển khai thực tế.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Phát hiện DDoS, học máy, CIC-DDoS 2019, lựa chọn đặc trưng FAMS, RobustScaler, Optuna, F2-score, tổng quát hóa theo nhóm tấn công.
+\end{IEEEkeywords}

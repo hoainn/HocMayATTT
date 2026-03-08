@@ -1,0 +1,128 @@
+% ============================================================
+% Tài liệu tham khảo -- Báo cáo phát hiện DDoS bằng học máy
+% ============================================================
+
+% --- Phân loại tấn công DDoS ---
+@article{mirkovic2004taxonomy,
+  author    = {Mirkovic, Jelena and Reiher, Peter},
+  title     = {A Taxonomy of {DDoS} Attack and {DDoS} Defense Mechanisms},
+  journal   = {ACM SIGCOMM Computer Communication Review},
+  year      = {2004},
+  volume    = {34},
+  number    = {2},
+  pages     = {39--53},
+  doi       = {10.1145/997150.997156},
+  publisher = {ACM}
+}
+
+% --- Bộ dữ liệu CIC-DDoS 2019 ---
+@inproceedings{cicddos2019,
+  author    = {Sharafaldin, Iman and Lashkari, Arash Habibi and Hakak, Saqib and Ghorbani, Ali A.},
+  title     = {Developing Realistic Distributed Denial of Service ({DDoS}) Attack Dataset and Taxonomy},
+  booktitle = {Proceedings of the 2019 International Carnahan Conference on Security Technology (ICCST)},
+  year      = {2019},
+  pages     = {1--8},
+  publisher = {IEEE},
+  doi       = {10.1109/CCST.2019.8888419},
+  note      = {Dataset available at: \url{https://www.kaggle.com/datasets/dhoogla/cicddos2019}}
+}
+
+% --- Bộ dữ liệu Phase 1 (Kaggle, tổng hợp từ CIC DoS 2016/IDS 2017/IDS 2018) ---
+@misc{kaggle_ddos_dataset,
+  author       = {Devendra416},
+  title        = {{DDoS} Datasets: {CIC} {DoS} 2016, {CIC} {IDS} 2017 and {CIC} {IDS} 2018},
+  howpublished = {Kaggle},
+  year         = {2023},
+  note         = {Compiled from CIC network traffic captures; based on Prasad et al.\ (DOI: 10.26438/ijcse/v7i4.157166). Available: \url{https://www.kaggle.com/datasets/devendra416/ddos-datasets}}
+}
+
+% --- Khung FAMS ---
+@article{ma2023fams,
+  author    = {Ma, Ruikui and Chen, Xuebin and Zhai, Ran},
+  title     = {A {DDoS} Attack Detection Method Based on Natural Selection of Features and Models},
+  journal   = {Electronics},
+  year      = {2023},
+  month     = {2},
+  volume    = {12},
+  number    = {4},
+  pages     = {1059},
+  doi       = {10.3390/electronics12041059},
+  publisher = {MDPI}
+}
+
+% --- Kitsune (ensemble autoencoder, phát hiện xâm nhập) ---
+@inproceedings{kitsune,
+  author    = {Mirsky, Yisroel and Doitshman, Tomer and Elovici, Yuval and Shabtai, Asaf},
+  title     = {Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection},
+  booktitle = {Proceedings of the Network and Distributed System Security Symposium (NDSS)},
+  year      = {2018},
+  publisher = {Internet Society},
+  doi       = {10.14722/ndss.2018.23093}
+}
+
+% --- LUCID (CNN nhẹ phát hiện DDoS thời gian thực) ---
+@article{lucid,
+  author    = {Doriguzzi-Corin, Roberto and Millar, Stuart and Scott-Hayward, Sandra and Mart{\'i}nez-del-Rinc{\'o}n, Jes{\'u}s and Siracusa, Domenico},
+  title     = {{LUCID}: A Practical, Lightweight Deep Learning Solution for {DDoS} Attack Detection},
+  journal   = {IEEE Transactions on Network and Service Management},
+  year      = {2020},
+  volume    = {17},
+  number    = {2},
+  pages     = {876--889},
+  doi       = {10.1109/TNSM.2020.2971566},
+  publisher = {IEEE}
+}
+
+% --- Gradient Boosting phát hiện DDoS ---
+@article{aytac2020,
+  author  = {Ayta{\c{c}}, T{\"u}rker and Ayd{\i}n, Muhammed Ali and Zaim, Abdul Halim},
+  title   = {Machine Learning Based {DDoS} Detection Using Stochastic Gradient Boosting},
+  journal = {European Journal of Science and Technology},
+  year    = {2020},
+  number  = {Special Issue},
+  pages   = {322--328},
+  doi     = {10.31590/ejosat.779822}
+}
+
+% --- Scikit-learn ---
+@article{pedregosa2011scikit,
+  author  = {Pedregosa, Fabian and Varoquaux, Ga{\"e}l and Gramfort, Alexandre and others},
+  title   = {Scikit-learn: Machine Learning in {Python}},
+  journal = {Journal of Machine Learning Research},
+  year    = {2011},
+  volume  = {12},
+  pages   = {2825--2830}
+}
+
+% --- XGBoost ---
+@inproceedings{chen2016xgboost,
+  author    = {Chen, Tianqi and Guestrin, Carlos},
+  title     = {{XGBoost}: A Scalable Tree Boosting System},
+  booktitle = {Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  year      = {2016},
+  pages     = {785--794},
+  publisher = {ACM},
+  doi       = {10.1145/2939672.2939785}
+}
+
+% --- Optuna ---
+@inproceedings{optuna2019,
+  author    = {Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiro and Ohta, Takeru and Koyama, Masanori},
+  title     = {Optuna: A Next-generation Hyperparameter Optimization Framework},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  year      = {2019},
+  pages     = {2623--2631},
+  publisher = {ACM},
+  doi       = {10.1145/3292500.3330701}
+}
+
+% --- SHAP ---
+@inproceedings{lundberg2017unified,
+  author    = {Lundberg, Scott M. and Lee, Su-In},
+  title     = {A Unified Approach to Interpreting Model Predictions},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2017},
+  volume    = {30},
+  pages     = {4765--4774},
+  publisher = {Curran Associates, Inc.}
+}

@@ -1,0 +1,87 @@
+\section{Giới thiệu và Tổng quan về Tấn công DDoS}
+
+\subsection{Đặt vấn đề}
+
+Tấn công từ chối dịch vụ phân tán (DDoS -- Distributed Denial of Service) là một trong những mối đe dọa an ninh mạng nghiêm trọng và dai dẳng nhất hiện nay. Không giống như các tấn công nhằm đánh cắp hoặc phá hủy dữ liệu, mục tiêu của DDoS là \textbf{làm gián đoạn tính sẵn sàng} của dịch vụ -- tức là ngăn người dùng hợp pháp tiếp cận tài nguyên mạng. Hậu quả có thể bao gồm thiệt hại tài chính trực tiếp, mất uy tín tổ chức, và gián đoạn hệ thống hạ tầng thiết yếu~\cite{mirkovic2004taxonomy}.
+
+Trong bối cảnh các dịch vụ trực tuyến, thương mại điện tử và hạ tầng số ngày càng phát triển, việc phát hiện và giảm thiểu tấn công DDoS kịp thời trở thành yêu cầu thiết yếu. Báo cáo này tiếp cận bài toán này từ góc độ học máy, xây dựng pipeline phân loại lưu lượng mạng nhằm phân biệt lưu lượng tấn công DDoS với lưu lượng bình thường, đồng thời đánh giá khả năng tổng quát hóa giữa các nhóm tấn công khác nhau.
+
+\subsection{Khái niệm và cơ chế tấn công DDoS}
+
+\textbf{DDoS} là hình thức tấn công trong đó kẻ tấn công điều phối \textbf{nhiều nguồn phân tán} -- thường là các máy tính, thiết bị IoT bị xâm chiếm và tổ chức thành \textit{botnet} -- để đồng thời gửi lượng lớn lưu lượng hoặc yêu cầu dịch vụ tới mục tiêu~\cite{mirkovic2004taxonomy}. Sự phân tán này tạo ra hai thách thức cơ bản: (i)~khó chặn lọc theo địa chỉ IP nguồn do số lượng nguồn lớn và thay đổi liên tục; (ii)~tổng lưu lượng tấn công dễ dàng vượt qua ngưỡng xử lý của hạ tầng mục tiêu.
+
+So sánh với \textbf{DoS} (Denial of Service -- tấn công từ một hoặc ít nguồn), DDoS khó phát hiện và khó giảm thiểu hơn đáng kể do tính phân tán về không gian địa lý và sự đa dạng về loại lưu lượng.
+
+Về cơ chế, tấn công DDoS khai thác \textbf{giới hạn tài nguyên} của hệ thống đích trên nhiều tầng khác nhau:
+\begin{itemize}
+    \item \textbf{Băng thông mạng:} Bão hòa đường truyền bằng lưu lượng thể tích lớn.
+    \item \textbf{Tài nguyên giao thức:} Làm cạn kiệt bảng kết nối TCP, hàng đợi xử lý gói tin.
+    \item \textbf{Tài nguyên ứng dụng:} Quá tải CPU, bộ nhớ hoặc logic xử lý của tầng ứng dụng bằng các yêu cầu ``hợp lệ'' về cú pháp nhưng với tần suất bất thường.
+\end{itemize}
+
+\subsection{Phân loại tấn công DDoS}
+
+Theo taxonomy được chấp nhận rộng rãi~\cite{mirkovic2004taxonomy,cicddos2019}, tấn công DDoS được phân loại dựa trên tầng mạng mà chúng khai thác và cơ chế gây quá tải. Báo cáo này sử dụng cách phân loại theo ba nhóm chính, phù hợp với cách phân nhóm trong bộ dữ liệu CIC-DDoS 2019.
+
+\subsubsection{Tấn công thể tích -- khuếch đại (Reflection/Volumetric)}
+
+Mục tiêu là \textbf{bão hòa băng thông} bằng lưu lượng cực lớn. Kỹ thuật phổ biến nhất là \textbf{khuếch đại phản chiếu} (Amplification / DrDoS): kẻ tấn công giả mạo địa chỉ IP nguồn là IP nạn nhân, gửi truy vấn nhỏ tới các máy chủ mở (resolver), và các máy chủ này trả lời với gói tin lớn hơn nhiều lần về phía nạn nhân. Hệ số khuếch đại (\textit{amplification factor}) của một số giao thức:
+\begin{itemize}
+    \item \textbf{DNS:} hệ số khuếch đại lên tới $\sim$54x (truy vấn ANY).
+    \item \textbf{NTP:} lên tới $\sim$556x (lệnh \texttt{monlist}).
+    \item \textbf{LDAP:} lên tới $\sim$46--70x.
+    \item \textbf{SNMP, NetBIOS, TFTP, MSSQL, SSDP:} hệ số từ 4x đến $\sim$30x.
+\end{itemize}
+
+Nhóm tấn công này có đặc điểm lưu lượng chiều về nạn nhân rất lớn, gói tin UDP, port đặc thù của từng giao thức, và nguồn là các máy chủ hợp pháp trên Internet.
+
+\subsubsection{Tấn công giao thức và thể tích -- UDP Flood (Reflection/Volume)}
+
+Nhóm này bao gồm tấn công dựa trên \textbf{UDP Flood} và biến thể \textbf{UDP-Lag}:
+\begin{itemize}
+    \item \textbf{UDP Flood:} Gửi liên tục các gói UDP tới cổng ngẫu nhiên; hệ thống đích tốn tài nguyên kiểm tra và phản hồi với ICMP ``port unreachable'', dẫn tới nghẽn mạng và quá tải CPU.
+    \item \textbf{UDP-Lag:} Biến thể gửi gói UDP với nhịp độ không đều, làm cho hệ thống xử lý bị trì hoãn và tạo độ trễ bất thường.
+\end{itemize}
+
+Trong bộ dữ liệu CIC-DDoS 2019, hai loại tấn công này được ghép cùng tấn công khuếch đại (DNS, NTP, LDAP, \ldots) thành hai nhóm thí nghiệm: \textbf{G1} (Reflection/Application: DNS, LDAP, MSSQL, NTP, NetBIOS, SNMP, SSDP, TFTP) và \textbf{G2} (Reflection/Volume: UDP, UDP-Lag cùng các loại khuếch đại thể tích).
+
+\subsubsection{Tấn công khai thác giao thức TCP và tầng ứng dụng (Exploitation)}
+
+Nhóm này khai thác điểm yếu của giao thức hoặc logic ứng dụng để gây quá tải với lưu lượng tương đối thấp hơn:
+\begin{itemize}
+    \item \textbf{SYN Flood:} Gửi liên tục gói SYN mà không hoàn tất bắt tay ba bước (3-way handshake), làm đầy bảng kết nối nửa mở (\textit{half-open connection table}) của máy chủ. Đây là tấn công tầng vận chuyển (Layer 4) hiệu quả ngay cả với lưu lượng vừa phải.
+    \item \textbf{HTTP GET/POST Flood (WebDDoS):} Gửi hàng loạt yêu cầu HTTP hợp lệ về cú pháp với tần suất cao hoặc payload lớn, quá tải máy chủ web ở tầng ứng dụng (Layer 7). Loại tấn công này đặc biệt khó phát hiện vì lưu lượng ``trông giống'' người dùng bình thường.
+\end{itemize}
+
+Trong bộ dữ liệu CIC-DDoS 2019, các loại tấn công này tạo thành nhóm \textbf{G3} (Exploitation: Syn, WebDDoS).
+
+\subsection{Thách thức trong phát hiện DDoS bằng học máy}
+
+Phát hiện DDoS bằng học máy đối mặt với một số thách thức đặc thù:
+
+\begin{enumerate}
+    \item \textbf{Sự đa dạng của các loại tấn công:} Mỗi nhóm tấn công có đặc trưng lưu lượng khác nhau (volumetric so với protocol-based so với application-layer), đòi hỏi mô hình phải học được các pattern đa dạng.
+
+    \item \textbf{Khả năng tổng quát hóa:} Mô hình huấn luyện trên một loại tấn công cần có khả năng phát hiện các loại tấn công mới chưa gặp. Đây là vấn đề cốt lõi được nghiên cứu trong báo cáo này thông qua thiết kế \textit{Leave-One-Group-Out}.
+
+    \item \textbf{Mất cân bằng lớp:} Trong mạng thực tế, lưu lượng bình thường chiếm tỷ lệ lớn hơn nhiều so với lưu lượng tấn công. Việc đánh giá mô hình cần chú trọng độ đo phù hợp (F2-score thay vì accuracy đơn thuần).
+
+    \item \textbf{Lựa chọn đặc trưng:} Lưu lượng mạng có hàng chục đến hàng trăm đặc trưng; nhiều đặc trưng có thể dư thừa hoặc nhiễu. Lựa chọn đặc trưng hiệu quả giúp giảm chiều dữ liệu, rút ngắn thời gian huấn luyện và suy luận, đồng thời cải thiện khả năng tổng quát hóa~\cite{ma2023fams}.
+\end{enumerate}
+
+\subsection{Mục tiêu và phạm vi báo cáo}
+
+Báo cáo này xây dựng và đánh giá \textbf{pipeline hai giai đoạn} phát hiện DDoS:
+\begin{itemize}
+    \item \textbf{Giai đoạn 1 -- Lựa chọn đặc trưng:} Áp dụng khung FAMS~\cite{ma2023fams} trên bộ dữ liệu tổng hợp (CIC DoS 2016, CIC IDS 2017, CIC IDS 2018)~\cite{kaggle_ddos_dataset} để xác định tập đặc trưng gọn có tính đại diện cao thông qua cơ chế bỏ phiếu từ năm phương pháp độc lập.
+    \item \textbf{Giai đoạn 2 -- Huấn luyện và đánh giá:} Huấn luyện ba mô hình phân loại (KNN, Random Forest, XGBoost) trên CIC-DDoS 2019~\cite{cicddos2019} với thiết kế thí nghiệm \textit{Leave-One-Group-Out}, đánh giá khả năng tổng quát hóa sang nhóm tấn công chưa thấy trong huấn luyện.
+\end{itemize}
+
+Các câu hỏi trọng tâm được trả lời qua thực nghiệm:
+\begin{enumerate}
+    \item Tập đặc trưng FAMS thu được từ bộ dữ liệu Kaggle có hiệu quả khi áp dụng trên CIC-DDoS 2019 không?
+    \item Mô hình huấn luyện trên một nhóm tấn công có tổng quát hóa tốt sang nhóm chưa thấy không?
+    \item Trong ba mô hình so sánh, mô hình nào tổng quát hóa tốt nhất theo thiết kế Leave-One-Group-Out?
+\end{enumerate}
+
+\textbf{Cấu trúc báo cáo:} Chương~\ref{sec:cong-trinh-lien-quan} tổng quan cơ sở lý thuyết và các công trình liên quan; Chương~\ref{sec:phuong-phap} trình bày phương pháp và thiết kế thực nghiệm; Chương~\ref{sec:thuc-nghiem} trình bày kết quả thực nghiệm và thảo luận; Chương~\ref{sec:ket-luan} kết luận và hướng phát triển.

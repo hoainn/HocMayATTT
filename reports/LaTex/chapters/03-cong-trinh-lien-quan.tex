@@ -1,0 +1,140 @@
+\section{Cơ sở lý thuyết và Công trình liên quan}
+\label{sec:cong-trinh-lien-quan}
+
+\subsection{Lựa chọn đặc trưng trong bài toán phân loại lưu lượng mạng}
+
+Lựa chọn đặc trưng (Feature Selection -- FS) là bước tiền xử lý quan trọng trong học máy, đặc biệt với dữ liệu lưu lượng mạng vốn có số chiều lớn (thường từ 70 đến hơn 80 đặc trưng trong các bộ dữ liệu CIC). Mục tiêu cốt lõi của FS là xác định tập con đặc trưng nhỏ nhất nhưng vẫn đủ thông tin phân biệt, từ đó \textbf{giảm số chiều đầu vào của mô hình}, rút ngắn thời gian huấn luyện và thời gian suy luận, đồng thời tránh overfitting và cải thiện khả năng tổng quát hóa~\cite{ma2023fams}. Trong bài toán phát hiện DDoS thời gian thực, chi phí tính toán của bước suy luận có ý nghĩa trực tiếp đến độ trễ phản hồi của hệ thống -- do đó giảm số đặc trưng đầu vào là yêu cầu thực tiễn quan trọng, không chỉ là tối ưu hóa lý thuyết.
+
+Các phương pháp FS thường được phân theo mối quan hệ với quá trình huấn luyện mô hình~\cite{ma2023fams}:
+
+\begin{itemize}
+    \item \textbf{Filter (Lọc):} Đánh giá và xếp hạng đặc trưng dựa trên các độ đo thống kê \textit{độc lập} với bộ phân loại, chẳng hạn phương sai, tương quan Pearson, hay thông tin tương hỗ (Mutual Information). Ưu điểm là tốc độ tính toán nhanh và không phụ thuộc mô hình; nhược điểm là không xét tương tác giữa đặc trưng và bộ phân loại cụ thể.
+
+    \item \textbf{Wrapper (Bao gói):} Đánh giá các tập con đặc trưng thông qua hiệu suất của một mô hình học máy cụ thể (ví dụ F1, Accuracy). Phương pháp này tối ưu trực tiếp cho bộ phân loại nhưng chi phí tính toán cao vì phải huấn luyện lại mô hình nhiều lần. Đại diện tiêu biểu: Recursive Feature Elimination (RFE).
+
+    \item \textbf{Embedded (Nhúng):} Lựa chọn đặc trưng được tích hợp \textit{bên trong} quá trình huấn luyện mô hình, chẳng hạn chuẩn hóa L1 (Lasso) đẩy hệ số đặc trưng ít quan trọng về 0, hoặc độ quan trọng đặc trưng (feature importance) của Random Forest. Phương pháp này cân bằng tốt giữa tốc độ và chất lượng so với Filter và Wrapper.
+\end{itemize}
+
+\subsection{Khung FAMS và cơ chế bỏ phiếu đa phương pháp}
+
+\textbf{Khung FAMS} (\textit{Feature and Model Selection})~\cite{ma2023fams} được đề xuất nhằm khắc phục nhược điểm của việc chỉ phụ thuộc vào một phương pháp FS duy nhất. Thay vì chọn theo một tiêu chí, FAMS kết hợp nhiều phương pháp FS từ cả ba nhóm Filter, Wrapper và Embedded thông qua \textbf{cơ chế bỏ phiếu}: một đặc trưng chỉ được đưa vào tập kết quả khi xuất hiện trong top-$K$ của ít nhất $\tau$ phương pháp. Trong báo cáo này, FAMS giúp thu gọn không gian đặc trưng từ hơn 70 đặc trưng xuống còn 18 đặc trưng (giảm $\approx$75\%), trực tiếp làm giảm thời gian huấn luyện và thời gian suy luận của các mô hình ở Phase 2. Cách tiếp cận này mang lại:
+
+\begin{itemize}
+    \item \textbf{Hiệu quả tính toán:} Giảm số chiều đầu vào rút ngắn đáng kể thời gian huấn luyện (đặc biệt với KNN có chi phí suy luận $O(nd)$) và thời gian suy luận trên luồng mạng thời gian thực.
+    \item \textbf{Tính đồng thuận:} Đặc trưng được chọn vì quan trọng theo nhiều góc độ đánh giá khác nhau, không phải chỉ tốt với một phương pháp đơn lẻ.
+    \item \textbf{Tính ổn định:} Kết quả ít biến động hơn khi thay đổi siêu tham số hay phân vùng dữ liệu.
+    \item \textbf{Tính linh hoạt:} Ngưỡng $\tau$ cho phép điều chỉnh sự đánh đổi giữa số lượng đặc trưng và mức độ đồng thuận.
+\end{itemize}
+
+\subsubsection{Năm phương pháp FS áp dụng trong Phase 1}
+
+Báo cáo này áp dụng năm phương pháp FS đại diện đầy đủ cho ba nhóm:
+
+\textbf{Nhóm Filter:}
+\begin{itemize}
+    \item \textbf{Variance Threshold:} Loại bỏ đặc trưng hằng số (phương sai = 0) và xếp hạng các đặc trưng còn lại theo $\sigma^2$. Đây là bước sàng lọc sơ bộ đơn giản nhưng hiệu quả để loại bỏ đặc trưng vô thông tin.
+    \item \textbf{Mutual Information (MI):} Đo lượng thông tin chung giữa đặc trưng $X$ và nhãn lớp $Y$:
+    \begin{equation}
+        I(X;Y) = \sum_{x,y} p(x,y) \log \frac{p(x,y)}{p(x)p(y)}
+    \end{equation}
+    MI không giả định quan hệ tuyến tính, do đó bắt được các phụ thuộc phi tuyến quan trọng trong dữ liệu lưu lượng mạng.
+\end{itemize}
+
+\textbf{Nhóm Wrapper:}
+\begin{itemize}
+    \item \textbf{RFE -- Recursive Feature Elimination:} Bắt đầu từ toàn bộ tập đặc trưng, mỗi bước loại bỏ đặc trưng có trọng số/importance thấp nhất (tính từ một mô hình phụ, thường là Decision Tree) cho đến khi còn $K$ đặc trưng. RFE đánh giá đặc trưng theo đóng góp trực tiếp vào hiệu suất phân loại.
+\end{itemize}
+
+\textbf{Nhóm Embedded:}
+\begin{itemize}
+    \item \textbf{Lasso L1 Regularization:} Hồi quy logistic với chuẩn hóa L1: $\min_w \sum_i \ell(\hat{y}_i, y_i) + \lambda \|w\|_1$. Hệ số $w_j$ của đặc trưng không quan trọng bị co về 0, cung cấp một cơ chế lựa chọn đặc trưng tự nhiên trong quá trình tối ưu.
+    \item \textbf{Random Forest Feature Importance:} Tính độ giảm trung bình Gini impurity tại các nút phân chia theo từng đặc trưng trên toàn bộ rừng cây. Đặc trưng có tầm quan trọng cao hơn xuất hiện gần gốc cây và tham gia phân chia nhiều hơn.
+\end{itemize}
+
+Mỗi phương pháp chọn \textbf{top-25} đặc trưng; sau đó cơ chế bỏ phiếu với ngưỡng $\tau$ tạo ra tập kết quả:
+\begin{equation}
+    \mathcal{F}_{opt} = \left\{ f_j \;\middle|\; \sum_{k=1}^{5} \mathbb{I}(f_j \in \text{top-}25_k) \geq \tau \right\}
+\end{equation}
+với $\mathbb{I}(\cdot)$ là hàm chỉ thị. Báo cáo so sánh hai ngưỡng: $\tau \geq 3$ (18 đặc trưng) và $\tau > 3$ (6 đặc trưng).
+
+\subsubsection{Tập đặc trưng tham chiếu từ Ma et al.}
+
+Trên bộ dữ liệu gốc của mình, Ma et al.~\cite{ma2023fams} xác định được \textbf{21 đặc trưng tối ưu} thông qua quy trình FAMS. Các đặc trưng này đại diện cho các thuộc tính quan trọng về giao thức, cổng dịch vụ, kích thước gói tin và phân phối thời gian luồng. Danh sách chi tiết được trình bày trong Bảng~\ref{tab:fams_features}.
+
+\begin{table}[htbp]
+\caption{21 đặc trưng tối ưu theo khung FAMS (Ma et al.~\cite{ma2023fams})}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|l|c|l|}
+\hline
+\textbf{STT} & \textbf{Tên đặc trưng} & \textbf{STT} & \textbf{Tên đặc trưng} \\
+\hline
+1  & Destination Port          & 12 & Fwd Header Length \\
+2  & Fwd Packet Length Mean    & 13 & Bwd Header Length \\
+3  & Flow IAT Max              & 14 & Max Packet Length \\
+4  & Subflow Bwd Bytes         & 15 & Packet Length Mean \\
+5  & Init\_Win\_bytes\_backward & 16 & Packet Length Variance \\
+6  & Protocol                  & 17 & ACK Flag Count \\
+7  & Total Length of Bwd Packets & 18 & Average Packet Size \\
+8  & Fwd Packet Length Max     & 19 & Avg Fwd Segment Size \\
+9  & Fwd Packet Length Std     & 20 & Init\_Win\_bytes\_forward \\
+10 & Flow Bytes/s              & 21 & min\_seg\_size\_forward \\
+11 & Fwd IAT Max               &    & \\
+\hline
+\end{tabular}
+\end{small}
+\label{tab:fams_features}
+\end{center}
+\end{table}
+
+Khi áp dụng cùng khung FAMS trên bộ dữ liệu tổng hợp CIC DoS 2016, CIC IDS 2017 và CIC IDS 2018 (Phase~1 của báo cáo này), cơ chế bỏ phiếu với ngưỡng $\tau \geq 3$ cho ra \textbf{18 đặc trưng} -- sự khác biệt so với 21 đặc trưng của Ma et al.\ phản ánh đặc điểm khác nhau giữa các bộ dữ liệu huấn luyện.
+
+\subsection{Các mô hình học máy sử dụng}
+
+\subsubsection{K-Nearest Neighbors (KNN)}
+
+KNN~\cite{pedregosa2011scikit} là thuật toán học lười biếng (\textit{lazy learning}): không có pha huấn luyện tường minh -- toàn bộ tập dữ liệu được lưu trữ và sử dụng trực tiếp tại bước suy luận. Để phân loại một mẫu mới $\mathbf{x}$, KNN tìm $k$ mẫu gần nhất trong không gian đặc trưng theo khoảng cách Euclid:
+\begin{equation}
+    d(\mathbf{x}, \mathbf{x}') = \sqrt{\sum_{i=1}^{n} (x_i - x'_i)^2}
+\end{equation}
+rồi gán nhãn theo đa số phiếu từ $k$ hàng xóm đó. KNN hoạt động tốt khi biên quyết định không tuyến tính và phức tạp, nhưng nhạy với thang đo đặc trưng (cần chuẩn hóa) và chi phí suy luận $O(nd)$ tuyến tính với kích thước tập huấn luyện.
+
+\subsubsection{Random Forest (RF)}
+
+Random Forest~\cite{pedregosa2011scikit} là phương pháp học tổ hợp (\textit{ensemble}): huấn luyện $T$ cây quyết định độc lập, mỗi cây trên một \textit{bootstrap sample} khác nhau của dữ liệu, và tại mỗi nút chỉ xét ngẫu nhiên $\sqrt{p}$ đặc trưng (với $p$ là tổng số đặc trưng). Dự đoán cuối là đa số phiếu của $T$ cây. Cơ chế bagging kết hợp random feature subspace giảm đáng kể phương sai so với cây đơn mà không tăng bias, tạo ra mô hình bền vững với nhiễu và overfitting. RF đồng thời cung cấp \textit{feature importance} như một sản phẩm phụ hữu ích của quá trình huấn luyện.
+
+\subsubsection{XGBoost (Extreme Gradient Boosting)}
+
+XGBoost~\cite{chen2016xgboost} xây dựng tổ hợp cây quyết định theo phương pháp boosting gradient: mỗi cây mới $f_t$ được huấn luyện để sửa sai sót (gradient của hàm mất mát) của tổ hợp các cây trước. Hàm mục tiêu kết hợp loss và penalty điều chỉnh:
+\begin{equation}
+    \mathcal{L}(\phi) = \sum_{i} \ell(\hat{y}_i, y_i) + \sum_{t} \Omega(f_t), \quad \Omega(f) = \gamma T + \frac{1}{2}\lambda \|w\|^2
+\end{equation}
+với $T$ là số lá và $w$ là véc-tơ trọng số lá. XGBoost nổi bật với khả năng xử lý dữ liệu thiếu, hỗ trợ regularization L1/L2, và tối ưu bậc hai (second-order gradient) giúp hội tụ nhanh hơn Gradient Boosting chuẩn. Trong thực tế, XGBoost thường đạt hiệu năng cao nhất trong các bài toán phân loại dạng bảng.
+
+\subsection{Các phương pháp hỗ trợ}
+
+\subsubsection{Tối ưu siêu tham số bằng Optuna}
+
+Optuna~\cite{optuna2019} là thư viện tối ưu siêu tham số tự động sử dụng thuật toán \textbf{TPE} (Tree-structured Parzen Estimator). Thay vì duyệt lưới cố định (GridSearch) hoặc lấy mẫu ngẫu nhiên (RandomizedSearch), TPE xây dựng hai mô hình mật độ xác suất từ lịch sử thử nghiệm -- một cho các tham số cho kết quả tốt và một cho các tham số cho kết quả xấu -- rồi đề xuất tham số tiếp theo sao cho tỷ lệ hai phân phối đó được tối đa hóa. Cách tiếp cận này hiệu quả hơn đáng kể so với tìm kiếm ngẫu nhiên, đặc biệt khi không gian tham số lớn.
+
+\subsubsection{Chuẩn hóa RobustScaler}
+
+Lưu lượng mạng thường chứa các giá trị ngoại lai (burst traffic, gói tin kích thước bất thường). RobustScaler~\cite{pedregosa2011scikit} chuẩn hóa dựa trên \textbf{trung vị} và \textbf{khoảng tứ phân vị} (IQR):
+\begin{equation}
+    x_{\text{scaled}} = \frac{x - Q_2(x)}{Q_3(x) - Q_1(x)}
+\end{equation}
+Vì trung vị và IQR ít bị ảnh hưởng bởi ngoại lai hơn mean và std, RobustScaler phù hợp hơn StandardScaler cho dữ liệu lưu lượng mạng. Scaler được \textit{fit} chỉ trên tập huấn luyện rồi \textit{transform} cho cả tập train và test để tránh rò rỉ thông tin (\textit{data leakage}).
+
+\subsubsection{Độ đo F$\beta$ và lựa chọn F2}
+
+Trong phát hiện xâm nhập, bỏ sót tấn công (False Negative) thường gây hậu quả nghiêm trọng hơn báo động nhầm (False Positive). F$\beta$-score là trung bình điều hòa có trọng số của Precision và Recall:
+\begin{equation}
+    F_\beta = (1+\beta^2)\, \frac{\text{Precision} \times \text{Recall}}{\beta^2 \cdot \text{Precision} + \text{Recall}}
+\end{equation}
+Với $\beta = 2$, F2 ưu tiên Recall cao gấp đôi Precision, phản ánh trực tiếp yêu cầu của bài toán: tối thiểu hóa tỷ lệ bỏ sót tấn công (FNR $= FN/(FN+TP)$) trong khi vẫn duy trì độ chính xác ở mức chấp nhận được. F2 được chọn làm mục tiêu cho Optuna trong suốt quá trình tối ưu siêu tham số.
+
+\subsection{Công trình liên quan về phát hiện DDoS bằng học máy}
+
+Phát hiện DDoS bằng học máy đã được nghiên cứu rộng rãi trong những năm gần đây. Aytaç et al.~\cite{aytac2020} áp dụng Stochastic Gradient Boosting trên các bộ dữ liệu CIC, đạt độ chính xác cao trên phân phối dữ liệu đồng nhất nhưng không đánh giá khả năng tổng quát hóa giữa các loại tấn công khác nhau. Mirsky et al.~\cite{kitsune} đề xuất Kitsune -- một ensemble các autoencoder nhỏ cho phát hiện xâm nhập trực tuyến -- phù hợp với môi trường triển khai thực tế nhưng không tập trung vào bài toán lựa chọn đặc trưng. Doriguzzi-Corin et al.~\cite{lucid} phát triển LUCID sử dụng CNN nhẹ cho phát hiện DDoS theo thời gian thực với yêu cầu dữ liệu đầu vào dạng chuỗi thời gian, đặt ra thêm yêu cầu về thu thập dữ liệu so với phương pháp dựa trên flow-feature.
+
+So với các công trình trên, báo cáo này tập trung vào hai điểm khác biệt: (i)~\textbf{lựa chọn đặc trưng đa phương pháp} qua khung FAMS để giảm chiều dữ liệu trước khi huấn luyện; (ii)~\textbf{thiết kế thực nghiệm Leave-One-Group-Out} để đánh giá khả năng tổng quát hóa liên nhóm tấn công, phản ánh thực tế triển khai khi hệ thống phải phát hiện các kiểu tấn công chưa từng được quan sát trong pha huấn luyện.

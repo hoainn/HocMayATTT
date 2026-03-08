@@ -1,0 +1,49 @@
+\section{Kết luận và hướng phát triển}
+\label{sec:ket-luan}
+
+\subsection{Kết luận}
+
+Báo cáo này đã xây dựng và đánh giá một pipeline hai giai đoạn ứng dụng học máy vào bài toán phát hiện tấn công DDoS, với hai đóng góp kỹ thuật chính:
+
+\begin{enumerate}
+    \item \textbf{Lựa chọn đặc trưng đa phương pháp theo khung FAMS:} Bằng cách kết hợp năm phương pháp lựa chọn đặc trưng từ ba nhóm Filter, Wrapper và Embedded thông qua cơ chế bỏ phiếu, Phase 1 xác định được tập \textbf{18 đặc trưng} (ngưỡng votes $\geq 3$) đạt F2 trung bình 0,9956 trên bộ dữ liệu Kaggle -- cao hơn đáng kể so với tập 6 đặc trưng (votes $> 3$, F2 = 0,9840). Cơ chế đồng thuận đa phương pháp giúp chọn được tập đặc trưng ổn định, không phụ thuộc vào bất kỳ một tiêu chí lựa chọn đơn lẻ nào.
+
+    \item \textbf{Đánh giá tổng quát hóa theo thiết kế Leave-One-Group-Out:} Ba thí nghiệm trên CIC-DDoS 2019 phân tích khả năng tổng quát hóa của ba mô hình (KNN, Random Forest, XGBoost) sang các nhóm tấn công chưa thấy trong quá trình huấn luyện. Kết quả chỉ ra rằng:
+    \begin{itemize}
+        \item Mô hình huấn luyện trên nhóm G3 (Exploitation: Syn, UDP, UDPLag, WebDDoS) tổng quát hóa tốt sang G1 và G2 (Reflection), với Random Forest đạt Test F2 = 0,985 và Gap = +0,013 -- mức Gap gần như bằng 0 cho thấy không có hiện tượng overfitting nhóm đáng kể.
+        \item Ngược lại, mô hình huấn luyện trên G1 hoặc G2 tổng quát hóa kém sang các nhóm còn lại (Test F2 = 0,60--0,83, Gap = +0,16 đến +0,39), phản ánh đặc trưng giao thức đặc thù của các nhóm này không chuyển giao tốt.
+        \item Random Forest nhất quán đạt hiệu năng và khả năng tổng quát hóa tốt nhất trong ba mô hình so sánh.
+    \end{itemize}
+\end{enumerate}
+
+Kết quả tổng thể khẳng định rằng \textbf{tính đa dạng của dữ liệu huấn luyện} -- không phải kích thước tập huấn luyện -- là yếu tố quyết định đến khả năng tổng quát hóa trong thiết kế Leave-One-Group-Out. Phát hiện này có ý nghĩa thực tiễn quan trọng cho việc xây dựng hệ thống phát hiện DDoS có khả năng đối phó với các kiểu tấn công mới.
+
+\subsection{Hạn chế}
+
+Bên cạnh những kết quả tích cực, báo cáo nhận thấy một số hạn chế cần được quan tâm:
+
+\begin{itemize}
+    \item \textbf{Dữ liệu phòng thí nghiệm:} Cả hai bộ dữ liệu đều được tạo ra trong môi trường kiểm soát, chưa bao gồm lưu lượng mã hóa (HTTPS/TLS), IPv6, hay các biến thể tấn công xuất hiện sau 2019. Hiệu năng trên dữ liệu thực tế có thể khác biệt so với kết quả báo cáo.
+
+    \item \textbf{Bất đối xứng tổng quát hóa:} Pipeline tổng quát hóa tốt từ G3 sang G1+G2 nhưng kém theo chiều ngược lại. Sự bất đối xứng này một phần do tập đặc trưng FAMS được học từ bộ Kaggle (chứa tấn công thể tích) nên phù hợp hơn với G3. Đây là hạn chế của việc dùng hai bộ dữ liệu khác nhau cho hai giai đoạn của pipeline.
+
+    \item \textbf{Mô hình học tĩnh:} Mô hình được huấn luyện offline trên phân phối cố định, chưa có cơ chế thích nghi khi tấn công thay đổi theo thời gian (\textit{concept drift}). Trong môi trường thực tế, lưu lượng mạng có thể biến động đáng kể so với dữ liệu huấn luyện.
+
+    \item \textbf{Thành phần WebDDoS:} Nhóm G3 chứa WebDDoS với chỉ 51 mẫu -- quá ít để đại diện đầy đủ cho loại tấn công này. Kết quả Exp 3 có thể bị ảnh hưởng bởi sự thiếu cân bằng này.
+\end{itemize}
+
+\subsection{Hướng phát triển}
+
+Dựa trên các kết quả và hạn chế đã phân tích, một số hướng mở rộng có giá trị thực tiễn:
+
+\begin{itemize}
+    \item \textbf{Giải quyết bất đối xứng tổng quát hóa:} Nghiên cứu nguyên nhân sâu xa của Gap lớn ở Exp 1\&2; thử nghiệm bổ sung đặc trưng đặc thù cho lưu lượng phản xạ (tỷ lệ gói tin phản hồi, phân phối port đặc thù của DNS/NTP/LDAP) hoặc áp dụng transfer learning để cải thiện tổng quát hóa sang nhóm Reflection khi huấn luyện từ Exploitation.
+
+    \item \textbf{Huấn luyện đa nhóm:} Thay vì Leave-One-Group-Out thuần túy, nghiên cứu kết hợp dữ liệu từ nhiều nhóm với tỷ lệ khác nhau để tìm chiến lược lấy mẫu tối ưu cho tổng quát hóa liên nhóm.
+
+    \item \textbf{Đánh giá trên dữ liệu thực tế:} Thu thập hoặc sử dụng bộ dữ liệu lưu lượng thực (có mã hóa TLS, IPv6, môi trường cloud) để kiểm chứng tính ứng dụng thực tiễn của pipeline.
+
+    \item \textbf{Thích nghi với concept drift:} Tích hợp cơ chế học trực tuyến (\textit{Online Learning}) hoặc tái huấn luyện theo chu kỳ (periodic retraining) để duy trì hiệu năng khi phân phối lưu lượng thay đổi theo thời gian.
+
+    \item \textbf{Giải thích mô hình:} Áp dụng SHAP~\cite{lundberg2017unified} để phân tích đóng góp đặc trưng theo từng loại tấn công, hỗ trợ kiểm tra tính hợp lý của mô hình và xác định hướng cải thiện tập đặc trưng.
+\end{itemize}

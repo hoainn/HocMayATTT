@@ -1,0 +1,232 @@
+\section{Thực nghiệm và đánh giá kết quả}
+\label{sec:thuc-nghiem}
+
+Chương này trình bày kết quả cụ thể của hai giai đoạn trong pipeline, bao gồm kết quả lựa chọn đặc trưng (Phase 1) và kết quả huấn luyện/đánh giá mô hình theo thiết kế Leave-One-Group-Out (Phase 2). Các kết quả số được trích xuất từ notebook \texttt{phase1\_feature\_selection.ipynb} và \texttt{phase2\_model\_training.ipynb}. Sơ đồ chi tiết pipeline đã được trình bày trong Hình~\ref{fig:phase1_diagram} và Hình~\ref{fig:phase2_diagram} (Chương~\ref{sec:phuong-phap}).
+
+\subsection{Kết quả Phase 1: Lựa chọn đặc trưng FAMS}
+
+\subsubsection{So sánh hai ngưỡng bỏ phiếu}
+
+Phase 1 áp dụng khung FAMS với hai ngưỡng bỏ phiếu để xác định tập đặc trưng phù hợp nhất cho Phase 2. Mỗi phương pháp trong 5 phương pháp (Variance, Mutual Information, RFE, Lasso L1, RF Importance) chọn top-25 đặc trưng; hai ngưỡng được so sánh:
+
+\begin{itemize}
+    \item \textbf{Votes $\geq 3$:} Đặc trưng được chọn bởi ít nhất 3/5 phương pháp $\to$ \textbf{18 đặc trưng}.
+    \item \textbf{Votes $> 3$:} Đặc trưng được chọn bởi ít nhất 4/5 phương pháp $\to$ \textbf{6 đặc trưng}.
+\end{itemize}
+
+Bảng~\ref{tab:phase1_eval} so sánh hiệu năng phân loại của ba mô hình trên tập test của bộ Kaggle với hai ngưỡng này.
+
+\begin{table*}[!t]
+\caption{So sánh ngưỡng bỏ phiếu FAMS: votes $\geq 3$ (18 đặc trưng) so với votes $> 3$ (6 đặc trưng) trên bộ dữ liệu Kaggle, đánh giá qua 3-fold CV và tập test.}
+\label{tab:phase1_eval}
+\begin{center}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|l|r|r|r|r|r|r|r|}
+\hline
+\textbf{Ngưỡng} & \textbf{Mô hình} & \textbf{CV F1} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{F2} & \textbf{FNR} \\
+\hline
+\multicolumn{9}{|l|}{\textit{Votes $\geq 3$ --- 18 đặc trưng}} \\
+\hline
+votes $\geq 3$ & KNN & 0,9927$\pm$0,0000 & 0,9930 & 0,9916 & 0,9939 & 0,9927 & 0,9934 & 0,0061 \\
+               & RF  & 0,9971$\pm$0,0000 & 0,9972 & 0,9976 & 0,9966 & 0,9971 & 0,9968 & 0,0034 \\
+               & XGB & 0,9971$\pm$0,0001 & 0,9972 & 0,9980 & 0,9961 & 0,9971 & 0,9965 & 0,0039 \\
+\hline
+\multicolumn{9}{|l|}{\textit{Votes $> 3$ --- 6 đặc trưng}} \\
+\hline
+votes $> 3$    & KNN & 0,9824$\pm$0,0002 & 0,9828 & 0,9777 & 0,9866 & 0,9821 & 0,9848 & 0,0134 \\
+               & RF  & 0,9809$\pm$0,0003 & 0,9818 & 0,9808 & 0,9812 & 0,9810 & 0,9811 & 0,0188 \\
+               & XGB & 0,9827$\pm$0,0003 & 0,9832 & 0,9769 & 0,9883 & 0,9826 & 0,9860 & 0,0117 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\end{center}
+\end{table*}
+
+F2 trung bình (trung bình ba mô hình) với ngưỡng $\geq 3$ đạt \textbf{0,9956}, cao hơn \textbf{0,9840} với ngưỡng $> 3$. Sự chênh lệch này cho thấy 12 đặc trưng bổ sung khi hạ ngưỡng từ $>3$ xuống $\geq 3$ mang lại thông tin có giá trị, đặc biệt thể hiện qua chỉ số FNR giảm đáng kể (ví dụ RF từ 0,0188 xuống 0,0034). Do đó, \textbf{tập 18 đặc trưng (votes $\geq 3$)} được chọn để sử dụng trong Phase 2.
+
+Bảng~\ref{tab:fams_features} liệt kê 18 đặc trưng được chọn sau bước bỏ phiếu FAMS.
+
+\begin{table}[H]
+\caption{18 đặc trưng được chọn bởi FAMS (votes $\geq 3$).}
+\label{tab:fams_features}
+\begin{center}
+\begin{tabular}{|c|l|}
+\hline
+\textbf{STT} & \textbf{Tên đặc trưng} \\
+\hline
+1  & Fwd Packet Length Mean \\
+2  & Fwd Packet Length Max \\
+3  & Fwd Packets Length Total \\
+4  & Fwd Seg Size Min \\
+5  & Flow IAT Min \\
+6  & Fwd Packet Length Std \\
+7  & Subflow Bwd Bytes \\
+8  & Packet Length Max \\
+9  & Init Bwd Win Bytes \\
+10 & Packet Length Std \\
+11 & Subflow Fwd Bytes \\
+12 & Fwd Header Length \\
+13 & Flow Packets/s \\
+14 & Bwd Packet Length Max \\
+15 & Bwd Packets Length Total \\
+16 & Avg Fwd Segment Size \\
+17 & Subflow Fwd Packets \\
+18 & Bwd Packet Length Std \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Kết quả Phase 2: Leave-One-Group-Out trên CIC-DDoS 2019}
+
+\subsubsection{Kết quả tổng hợp}
+
+Bảng~\ref{tab:phase2_results} trình bày đầy đủ kết quả của ba thí nghiệm LOGO trên bộ CIC-DDoS 2019 với 18 đặc trưng FAMS. Với mỗi thí nghiệm, CV F2 phản ánh hiệu năng nội bộ (trên tập train qua 5-fold CV), trong khi Test F2 phản ánh khả năng tổng quát hóa sang các nhóm tấn công chưa thấy. Chỉ số \textbf{Gap} = CV F2 $-$ Test F2 định lượng mức độ overfit theo nhóm tấn công.
+
+\begin{table*}[!t]
+\caption{Kết quả Phase 2 -- Leave-One-Group-Out (CIC-DDoS 2019, 18 đặc trưng FAMS, RobustScaler, Optuna F2, Stratified 5-Fold CV, 30 trials)}
+\label{tab:phase2_results}
+\begin{center}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|l|r|r|r|r|r|r|r|}
+\hline
+\textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{CV F2} & \textbf{Test F2} & \textbf{Test F1} & \textbf{Recall} & \textbf{FNR} & \textbf{AUC} & \textbf{Gap} \\
+\hline
+Exp 1 (G1$\to$G2+G3) & KNN & 0,9952$\pm$0,0009 & 0,6027 & 0,7081 & 0,5482 & 0,4518 & 0,7733 & +0,3925 \\
+                      & RF  & 0,9972$\pm$0,0006 & 0,8332 & 0,8888 & 0,7999 & 0,2001 & 0,9844 & +0,1640 \\
+                      & XGB & 0,9976$\pm$0,0005 & 0,7764 & 0,8474 & 0,7353 & 0,2647 & 0,9887 & +0,2212 \\
+\hline
+Exp 2 (G2$\to$G1+G3) & KNN & 0,9989$\pm$0,0002 & 0,6109 & 0,7150 & 0,5568 & 0,4432 & 0,8013 & +0,3880 \\
+                      & RF  & 0,9995$\pm$0,0001 & 0,6196 & 0,7226 & 0,5658 & 0,4342 & 0,8047 & +0,3799 \\
+                      & XGB & 0,9993$\pm$0,0002 & 0,6221 & 0,7247 & 0,5684 & 0,4316 & 0,8989 & +0,3772 \\
+\hline
+Exp 3 (G3$\to$G1+G2) & KNN & 0,9937$\pm$0,0007 & 0,9171 & 0,9462 & 0,8987 & 0,1013 & 0,9453 & +0,0766 \\
+                      & RF  & 0,9981$\pm$0,0004 & \textbf{0,9848} & \textbf{0,9904} & \textbf{0,9811} & \textbf{0,0189} & 0,9990 & +0,0133 \\
+                      & XGB & 0,9978$\pm$0,0002 & 0,9022 & 0,9364 & 0,8807 & 0,1193 & 0,9981 & +0,0956 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\end{center}
+\end{table*}
+
+\subsubsection{Phân tích Exp 1 -- Huấn luyện trên G1 (Reflection/Application)}
+
+Khi huấn luyện trên nhóm G1 (MSSQL, DNS, LDAP, NetBIOS, SNMP, Portmap -- chỉ 22.839 mẫu tấn công), Test F2 giảm đáng kể so với CV F2: KNN đạt 0,60 (Gap +0,39), RF đạt 0,83 (Gap +0,16), XGB đạt 0,78 (Gap +0,22). Điều này cho thấy mô hình học được đặc trưng gắn với lưu lượng phản xạ giao thức ứng dụng, nhưng không tổng quát hóa tốt sang tấn công thể tích (G2: NTP/TFTP) hay tấn công khai thác (G3: Syn/UDP/WebDDoS).
+
+Nhóm G1 có kích thước nhỏ nhất (chỉ bằng khoảng 7\% so với Benign) và đặc trưng tương đối đồng nhất về giao thức (DNS, LDAP, MSSQL đều là phản xạ ứng dụng), dẫn đến việc mô hình học ``nhận dạng giao thức cụ thể'' hơn là pattern DDoS tổng quát. RF tổng quát hóa tốt hơn KNN và XGB trong thí nghiệm này, với FNR 0,20 so với 0,45 (KNN) và 0,26 (XGB).
+
+\subsubsection{Phân tích Exp 2 -- Huấn luyện trên G2 (Reflection/Volume)}
+
+Exp 2 cho thấy một trường hợp thú vị: mặc dù G2 có kích thước lớn nhất (200.705 mẫu tấn công, chủ yếu NTP và TFTP), cả ba mô hình đều có Gap lớn tương đương nhau (0,38--0,39) và Test F2 thấp (0,61--0,62). CV F2 cực kỳ cao (RF: 0,9995) cho thấy mô hình phân loại hoàn hảo lưu lượng NTP/TFTP vs Benign trong nội bộ, nhưng hoàn toàn thất bại khi phải phân loại các loại tấn công khác.
+
+Lý giải: NTP và TFTP có đặc trưng rất đặc thù (kích thước phản hồi lớn bất thường, cổng UDP 123/69), khiến mô hình học một biên quyết định hẹp dựa trên đặc trưng giao thức thay vì pattern DDoS chung. Kết quả này nhấn mạnh rằng \textit{kích thước tập huấn luyện lớn không đảm bảo tổng quát hóa tốt nếu tập đó thiếu đa dạng về loại lưu lượng}.
+
+\subsubsection{Phân tích Exp 3 -- Huấn luyện trên G3 (Exploitation)}
+
+Exp 3 cho kết quả vượt trội so với hai thí nghiệm còn lại. RF đạt Test F2 = \textbf{0,9848} với Gap = +0,013 -- gần như không có hiện tượng overfit. KNN và XGB cũng cải thiện đáng kể (Test F2 lần lượt 0,92 và 0,90). Tỷ lệ bỏ sót tấn công (FNR) của RF chỉ \textbf{1,89\%}, tức là mô hình phát hiện được hơn 98\% các cuộc tấn công từ G1 và G2 mặc dù không được huấn luyện trên chúng.
+
+Lý giải cho kết quả xuất sắc của Exp 3: Nhóm G3 bao gồm cả tấn công thể tích (UDP Flood, Syn Flood) và tầng ứng dụng (WebDDoS, UDPLag), tạo ra đặc trưng học đa dạng về kích thước gói tin, tốc độ luồng, và tỷ lệ gói tin forward/backward. Bộ dữ liệu Kaggle sử dụng trong Phase 1 cũng chứa UDP Flood và Syn Flood, nên tập đặc trưng FAMS được tối ưu hóa một phần cho các loại tấn công này, tạo ra sự tương thích tốt giữa đặc trưng học được và bài toán phân loại G3.
+
+\subsection{Kết quả trực quan}
+
+Hình~\ref{fig:phase2_heatmap} tóm tắt Test F2 theo thí nghiệm và mô hình dưới dạng heatmap: Exp 3 nổi bật với màu đậm, đặc biệt RF đạt giá trị gần 1,0. Hình~\ref{fig:phase2_roc} thể hiện đường cong ROC trên tập test: AUC của RF ở Exp 3 đạt 0,999, trong khi các mô hình ở Exp 1 và Exp 2 có đường cong thấp hơn đáng kể, đặc biệt KNN.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_heatmap.png}
+    \caption{Heatmap Test F2 theo thí nghiệm và mô hình. Exp 3 (G3$\to$G1+G2) đạt hiệu năng cao nhất, RF vượt trội.}
+    \label{fig:phase2_heatmap}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_roc.png}
+    \caption{Đường cong ROC trên tập test (nhóm tấn công chưa thấy) cho từng thí nghiệm và mô hình.}
+    \label{fig:phase2_roc}
+\end{figure}
+
+Hình~\ref{fig:phase2_confusion} (ma trận nhầm lẫn mô hình tốt nhất mỗi thí nghiệm) xác nhận định lượng: Exp 1\&2 bỏ sót 20--45\% mẫu tấn công (FNR cao), trong khi Exp 3 RF chỉ bỏ sót 1,89\%. Hình~\ref{fig:phase2_cv_boxplot} cho thấy CV F2 rất ổn định (độ lệch chuẩn nhỏ) ở cả ba thí nghiệm, xác nhận rằng Gap lớn ở Exp 1\&2 xuất phát từ overfitting nhóm tấn công, không phải từ sự bất ổn của quá trình cross-validation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_confusion_matrix.png}
+    \caption{Ma trận nhầm lẫn của mô hình tốt nhất mỗi thí nghiệm trên tập test. Exp 1\&2 có tỷ lệ False Negative cao; Exp 3 RF gần như không bỏ sót.}
+    \label{fig:phase2_confusion}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_cv_boxplot.png}
+    \caption{Phân phối F2 qua 5 fold (Stratified 5-Fold CV) cho từng thí nghiệm. CV F2 ổn định ở cả ba thí nghiệm -- Gap lớn ở Exp 1\&2 đến từ overfitting nhóm, không phải từ bất ổn CV.}
+    \label{fig:phase2_cv_boxplot}
+\end{figure}
+
+Hình~\ref{fig:phase2_feature_importance} xác nhận rằng các đặc trưng thể tích như \texttt{Fwd Packet Length Mean/Max}, \texttt{Flow IAT Max}, \texttt{Flow Bytes/s} chiếm tỷ trọng lớn trong cả RF và XGB -- phù hợp với lý giải về sự tương đồng giữa G3 và bộ dữ liệu Kaggle. Hình~\ref{fig:phase2_optuna_history} cho thấy Optuna TPE hội tụ nhanh, thường tìm được siêu tham số tốt sau 10--15 trong tổng số 30 trial.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_feature_importance.png}
+    \caption{Feature importance của RF và XGB (Exp 1). Các đặc trưng thể tích (Fwd Packet Length, Flow IAT) chiếm tỷ trọng lớn.}
+    \label{fig:phase2_feature_importance}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{hinh/phase2_optuna_history.png}
+    \caption{Lịch sử Optuna -- F2 theo số trial. Cả ba thí nghiệm hội tụ sau khoảng 10--15 trial.}
+    \label{fig:phase2_optuna_history}
+\end{figure}
+
+\subsection{Đánh giá hiệu quả tính toán}
+
+Một trong những mục tiêu quan trọng của bước lựa chọn đặc trưng FAMS là giảm số chiều đầu vào của mô hình, từ đó rút ngắn thời gian huấn luyện và suy luận. Bảng~\ref{tab:timing} trình bày thời gian huấn luyện và thời gian suy luận của ba mô hình trên ba thí nghiệm.
+
+Về mặt lý thuyết, việc giảm từ 70+ đặc trưng xuống còn 18 đặc trưng (giảm $\approx$75\% số chiều) có tác động khác nhau tùy mô hình:
+\begin{itemize}
+    \item \textbf{KNN:} Hưởng lợi nhiều nhất vì chi phí suy luận tỷ lệ trực tiếp với số chiều $d$ -- tính khoảng cách Euclid trên 18 chiều nhanh hơn đáng kể so với 70+ chiều.
+    \item \textbf{Random Forest \& XGBoost:} Giảm số chiều giúp rút ngắn thời gian tìm điểm chia tại mỗi nút cây, qua đó giảm thời gian huấn luyện; tác động đến suy luận ít hơn KNN nhưng vẫn có ý nghĩa khi tập test lớn.
+\end{itemize}
+
+\begin{table}[H]
+\caption{Thời gian huấn luyện (s) và suy luận (ms/mẫu) của các mô hình theo từng thí nghiệm.}
+\label{tab:timing}
+\begin{center}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{|l|l|r|r|r|r|}
+\hline
+\textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Train size} & \textbf{T. huấn luyện (s)} & \textbf{T. suy luận (ms/mẫu)} & \textbf{Test F2} \\
+\hline
+Exp 1 (G1$\to$G2+G3) & KNN &  84.082 & 0,01 & 0,0256 & 0,6027 \\
+                      & RF  &  84.082 & 1,28 & 0,0068 & 0,8332 \\
+                      & XGB &  84.082 & 0,48 & 0,0003 & 0,7764 \\
+\hline
+Exp 2 (G2$\to$G1+G3) & KNN & 261.948 & 0,16 & 0,0081 & 0,6109 \\
+                      & RF  & 261.948 & 0,85 & 0,0027 & 0,6196 \\
+                      & XGB & 261.948 & 1,29 & 0,0005 & 0,6221 \\
+\hline
+Exp 3 (G3$\to$G1+G2) & KNN & 138.714 & 0,08 & 0,0848 & 0,9171 \\
+                      & RF  & 138.714 & 0,58 & 0,0028 & 0,9848 \\
+                      & XGB & 138.714 & 0,45 & 0,0002 & 0,9022 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\end{center}
+\end{table}
+
+\subsection{Tổng hợp và nhận xét}
+
+\subsubsection{So sánh ba mô hình}
+
+\textbf{Random Forest} là mô hình nhất quán nhất về khả năng tổng quát hóa: đạt Test F2 cao nhất ở Exp 1 (0,83) và Exp 3 (0,98), đồng thời có Gap nhỏ nhất ở Exp 3 (+0,013). Cơ chế bagging của RF giúp giảm phương sai và tránh overfit vào đặc trưng đặc thù của nhóm tấn công huấn luyện.
+
+\textbf{XGBoost} đạt AUC cao (0,99 ở Exp 1 và Exp 3) nhưng có Gap lớn hơn RF ở Exp 3 (+0,096 so với +0,013). Điều này gợi ý XGBoost có xu hướng học các pattern phức tạp hơn của tập train, nhưng phần pattern đó không hoàn toàn chuyển giao sang nhóm tấn công mới.
+
+\textbf{KNN} có Test F2 thấp nhất ở Exp 1 và Exp 2 (khoảng 0,61), nhưng cải thiện lên 0,92 ở Exp 3. Điều này phù hợp với đặc tính của KNN: hoạt động tốt khi phân phối dữ liệu train và test có sự tương đồng cao trong không gian đặc trưng (trường hợp Exp 3), nhưng kém khi phân phối khác biệt lớn.
+
+\subsubsection{Ảnh hưởng của đặc trưng FAMS đến tổng quát hóa}
+
+Kết quả thực nghiệm cho thấy tập 18 đặc trưng FAMS được tối ưu hóa cho bộ dữ liệu Kaggle (chứa nhiều tấn công thể tích như UDP Flood, Syn) phù hợp tốt hơn với G3 (Exploitation) so với G1/G2 (Reflection). Điều này dẫn đến bất đối xứng rõ rệt: tổng quát hóa tốt từ G3 sang G1+G2 (Exp 3), nhưng kém từ G1 hay G2 sang các nhóm còn lại (Exp 1, Exp 2). Hiện tượng này là minh chứng cụ thể cho tầm quan trọng của sự phù hợp giữa phân phối dữ liệu lựa chọn đặc trưng và dữ liệu huấn luyện mô hình trong một pipeline hai giai đoạn.
+
+\subsubsection{Ý nghĩa thực tiễn}
+
+Kết quả của thiết kế Leave-One-Group-Out có ý nghĩa thực tiễn rõ rệt: trong triển khai thực tế, hệ thống phát hiện DDoS thường gặp các kiểu tấn công mới chưa có trong tập huấn luyện. Việc huấn luyện trên nhóm tấn công \textit{đa dạng} (như G3, bao gồm cả tấn công thể tích lẫn tầng ứng dụng) tạo ra mô hình tổng quát hóa tốt hơn so với huấn luyện trên nhóm đơn điệu (như G2 chỉ có NTP/TFTP). Điều này gợi ý rằng chiến lược thu thập dữ liệu huấn luyện cần ưu tiên \textit{đa dạng loại tấn công} hơn là \textit{số lượng mẫu thuần túy}.

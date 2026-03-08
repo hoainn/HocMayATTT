@@ -14,3 +14,20 @@ data/
 
 # Claude Code internal files
 .claude/
+
+# macOS
+.DS_Store
+
+# LaTeX build artifacts
+reports/LaTex/*.aux
+reports/LaTex/*.bbl
+reports/LaTex/*.blg
+reports/LaTex/*.log
+reports/LaTex/*.out
+reports/LaTex/Main.pdf
+reports/LaTex/hinh/*.aux
+reports/LaTex/hinh/*.log
+reports/LaTex/hinh/*.pdf
+
+# Cursor IDE
+.cursor/
