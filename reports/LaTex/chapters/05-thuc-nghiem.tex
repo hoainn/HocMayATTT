@@ -198,7 +198,7 @@ Optuna TPE hội tụ nhanh, thường tìm được siêu tham số tốt sau 1
 Bảng~\ref{tab:optuna_params} liệt kê bộ siêu tham số tốt nhất mà Optuna tìm được cho từng mô hình và từng thí nghiệm.
 
 \begin{table*}[!t]
-\caption{Siêu tham số tốt nhất do Optuna TPE tìm được (30 trial, subsample 50.000 mẫu/trial).}
+\caption{Siêu tham số tốt nhất do Optuna TPE tìm được (30 trial, subsample 50.000 mẫu/trial). KNN cố định \texttt{algorithm=ball\_tree}; các tham số còn lại do Optuna tối ưu.}
 \label{tab:optuna_params}
 \begin{center}
 \begin{adjustbox}{width=\textwidth}
@@ -206,15 +206,15 @@ Bảng~\ref{tab:optuna_params} liệt kê bộ siêu tham số tốt nhất mà 
 \hline
 \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Siêu tham số tốt nhất} \\
 \hline
-\multirow{3}{*}{Exp 1 (G1)} & KNN & \texttt{n\_neighbors=3, weights=distance, metric=manhattan} \\
+\multirow{3}{*}{Exp 1 (G1)} & KNN & \texttt{n\_neighbors=3, weights=distance} \\
  & RF  & \texttt{n\_estimators=100, max\_depth=19, min\_samples\_split=2, max\_features=log2} \\
  & XGB & \texttt{n\_estimators=500, max\_depth=7, learning\_rate=0.035, subsample=0.785, colsample\_bytree=0.744} \\
 \hline
-\multirow{3}{*}{Exp 2 (G2)} & KNN & \texttt{n\_neighbors=5, weights=distance, metric=manhattan} \\
+\multirow{3}{*}{Exp 2 (G2)} & KNN & \texttt{n\_neighbors=5, weights=distance} \\
  & RF  & \texttt{n\_estimators=150, max\_depth=18, min\_samples\_split=2, max\_features=log2} \\
  & XGB & \texttt{n\_estimators=450, max\_depth=7, learning\_rate=0.094, subsample=0.999, colsample\_bytree=0.816} \\
 \hline
-\multirow{3}{*}{Exp 3 (G3)} & KNN & \texttt{n\_neighbors=3, weights=distance, metric=manhattan} \\
+\multirow{3}{*}{Exp 3 (G3)} & KNN & \texttt{n\_neighbors=3, weights=distance} \\
  & RF  & \texttt{n\_estimators=500, max\_depth=15, min\_samples\_split=5, max\_features=log2} \\
  & XGB & \texttt{n\_estimators=200, max\_depth=6, learning\_rate=0.133, subsample=0.918, colsample\_bytree=0.820} \\
 \hline
@@ -234,7 +234,7 @@ Về mặt lý thuyết, việc giảm từ 70+ đặc trưng xuống còn 18 đ
 \end{itemize}
 
 \begin{table}[H]
-\caption{Thời gian huấn luyện (s) và suy luận (ms/mẫu) của các mô hình theo từng thí nghiệm.}
+\caption{Thời gian huấn luyện (s) và suy luận (ms/mẫu) của các mô hình theo từng thí nghiệm. KNN sử dụng \texttt{algorithm=ball\_tree} cố định để đảm bảo so sánh nhất quán.}
 \label{tab:timing}
 \begin{center}
 \begin{adjustbox}{width=\linewidth}
@@ -242,24 +242,22 @@ Về mặt lý thuyết, việc giảm từ 70+ đặc trưng xuống còn 18 đ
 \hline
 \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Train size} & \textbf{T. huấn luyện (s)} & \textbf{T. suy luận (ms/mẫu)} & \textbf{Test F2} \\
 \hline
-Exp 1 (G1$\to$G2+G3) & KNN &  84.082 & 0,01 & 0,0256 & 0,6027 \\
-                      & RF  &  84.082 & 1,28 & 0,0068 & 0,8332 \\
-                      & XGB &  84.082 & 0,48 & 0,0003 & 0,7764 \\
+Exp 1 (G1$\to$G2+G3) & KNN & 124.225 & 0,06 & 0,1102 & 0,5790 \\
+                      & RF  & 124.225 & 1,00 & 0,0031 & 0,8330 \\
+                      & XGB & 124.225 & 1,96 & 0,0013 & 0,7753 \\
 \hline
-Exp 2 (G2$\to$G1+G3) & KNN & 261.948 & 0,16 & 0,0081 & 0,6109 \\
-                      & RF  & 261.948 & 0,85 & 0,0027 & 0,6196 \\
-                      & XGB & 261.948 & 1,29 & 0,0005 & 0,6221 \\
+Exp 2 (G2$\to$G1+G3) & KNN & 318.116 & 0,20 & 0,1526 & 0,5741 \\
+                      & RF  & 318.116 & 2,53 & 0,0054 & 0,6032 \\
+                      & XGB & 318.116 & 2,62 & 0,0009 & 0,6058 \\
 \hline
-Exp 3 (G3$\to$G1+G2) & KNN & 138.714 & 0,08 & 0,0848 & 0,9171 \\
-                      & RF  & 138.714 & 0,58 & 0,0028 & 0,9848 \\
-                      & XGB & 138.714 & 0,45 & 0,0002 & 0,9022 \\
+Exp 3 (G3$\to$G1+G2) & KNN & 184.692 & 0,09 & 0,0559 & 0,9204 \\
+                      & RF  & 184.692 & 5,73 & 0,0111 & 0,9870 \\
+                      & XGB & 184.692 & 0,83 & 0,0005 & 0,9519 \\
 \hline
 \end{tabular}
 \end{adjustbox}
 \end{center}
 \end{table}
-
-Lưu ý: thời gian suy luận của KNN dao động không đơn điệu theo kích thước tập huấn luyện (Exp 3 cao hơn Exp 1 dù train size lớn hơn). Nguyên nhân là sklearn tự động lựa chọn thuật toán tìm kiếm hàng xóm (brute-force, kd-tree, hoặc ball-tree) dựa trên kích thước và mật độ tập huấn luyện, kết hợp với giá trị tham số $k$ được Optuna chọn khác nhau cho từng thí nghiệm. Do đó, thời gian suy luận của KNN không thể so sánh trực tiếp giữa các thí nghiệm.
 
 \subsection{Tổng hợp và nhận xét}
 
