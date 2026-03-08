@@ -195,6 +195,34 @@ Hình~\ref{fig:phase2_optuna_history} thể hiện lịch sử tối ưu Optuna 
 
 Optuna TPE hội tụ nhanh, thường tìm được siêu tham số tốt sau 10--15 trong tổng số 30 trial ở cả ba thí nghiệm.
 
+Bảng~\ref{tab:optuna_params} liệt kê bộ siêu tham số tốt nhất mà Optuna tìm được cho từng mô hình và từng thí nghiệm.
+
+\begin{table*}[!t]
+\caption{Siêu tham số tốt nhất do Optuna TPE tìm được (30 trial, subsample 50.000 mẫu/trial).}
+\label{tab:optuna_params}
+\begin{center}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Siêu tham số tốt nhất} \\
+\hline
+\multirow{3}{*}{Exp 1 (G1)} & KNN & \texttt{n\_neighbors=3, weights=distance, metric=manhattan} \\
+ & RF  & \texttt{n\_estimators=100, max\_depth=19, min\_samples\_split=2, max\_features=log2} \\
+ & XGB & \texttt{n\_estimators=500, max\_depth=7, learning\_rate=0.035, subsample=0.785, colsample\_bytree=0.744} \\
+\hline
+\multirow{3}{*}{Exp 2 (G2)} & KNN & \texttt{n\_neighbors=5, weights=distance, metric=manhattan} \\
+ & RF  & \texttt{n\_estimators=150, max\_depth=18, min\_samples\_split=2, max\_features=log2} \\
+ & XGB & \texttt{n\_estimators=450, max\_depth=7, learning\_rate=0.094, subsample=0.999, colsample\_bytree=0.816} \\
+\hline
+\multirow{3}{*}{Exp 3 (G3)} & KNN & \texttt{n\_neighbors=3, weights=distance, metric=manhattan} \\
+ & RF  & \texttt{n\_estimators=500, max\_depth=15, min\_samples\_split=5, max\_features=log2} \\
+ & XGB & \texttt{n\_estimators=200, max\_depth=6, learning\_rate=0.133, subsample=0.918, colsample\_bytree=0.820} \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\end{center}
+\end{table*}
+
 \subsection{Đánh giá hiệu quả tính toán}
 
 Một trong những mục tiêu quan trọng của bước lựa chọn đặc trưng FAMS là giảm số chiều đầu vào của mô hình, từ đó rút ngắn thời gian huấn luyện và suy luận. Bảng~\ref{tab:timing} trình bày thời gian huấn luyện và thời gian suy luận của ba mô hình trên ba thí nghiệm.
