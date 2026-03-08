@@ -113,13 +113,13 @@ Exp 3 (G3$\to$G1+G2) & KNN & 0,9937$\pm$0,0007 & 0,9171 & 0,9462 & 0,8987 & 0,10
 
 Khi huấn luyện trên nhóm G1 (MSSQL, DNS, LDAP, NetBIOS, SNMP, Portmap -- chỉ 22.839 mẫu tấn công), Test F2 giảm đáng kể so với CV F2: KNN đạt 0,60 (Gap +0,39), RF đạt 0,83 (Gap +0,16), XGB đạt 0,78 (Gap +0,22). Điều này cho thấy mô hình học được đặc trưng gắn với lưu lượng phản xạ giao thức ứng dụng, nhưng không tổng quát hóa tốt sang tấn công thể tích (G2: NTP/TFTP) hay tấn công khai thác (G3: Syn/UDP/WebDDoS).
 
-Nhóm G1 có kích thước nhỏ nhất (chỉ bằng khoảng 7\% so với Benign) và đặc trưng tương đối đồng nhất về giao thức (DNS, LDAP, MSSQL đều là phản xạ ứng dụng), dẫn đến việc mô hình học ``nhận dạng giao thức cụ thể'' hơn là pattern DDoS tổng quát. RF tổng quát hóa tốt hơn KNN và XGB trong thí nghiệm này, với FNR 0,20 so với 0,45 (KNN) và 0,26 (XGB).
+Nhóm G1 có kích thước nhỏ nhất trong ba nhóm tấn công -- chỉ 22.839 mẫu, bằng khoảng 26\% so với lưu lượng Benign -- và có đặc trưng đồng nhất về giao thức (DNS, LDAP, MSSQL đều là phản xạ ứng dụng), dẫn đến việc mô hình học ``nhận dạng giao thức cụ thể'' hơn là pattern DDoS tổng quát. RF tổng quát hóa tốt hơn KNN và XGB trong thí nghiệm này, với FNR 0,20 so với 0,45 (KNN) và 0,26 (XGB), cho thấy cơ chế bagging giúp giảm thiểu một phần sự phụ thuộc vào đặc trưng giao thức khi dữ liệu đủ đa dạng trong mỗi cây.
 
 \subsubsection{Phân tích Exp 2 -- Huấn luyện trên G2 (Reflection/Volume)}
 
-Exp 2 cho thấy một trường hợp thú vị: mặc dù G2 có kích thước lớn nhất (200.705 mẫu tấn công, chủ yếu NTP và TFTP), cả ba mô hình đều có Gap lớn tương đương nhau (0,38--0,39) và Test F2 thấp (0,61--0,62). CV F2 cực kỳ cao (RF: 0,9995) cho thấy mô hình phân loại hoàn hảo lưu lượng NTP/TFTP vs Benign trong nội bộ, nhưng hoàn toàn thất bại khi phải phân loại các loại tấn công khác.
+Exp 2 cho thấy một trường hợp đáng chú ý: mặc dù G2 có kích thước lớn nhất (200.705 mẫu tấn công, chủ yếu NTP và TFTP), cả ba mô hình đều có Gap lớn tương đương nhau (0,38--0,39) và Test F2 thấp (0,61--0,62). CV F2 cực kỳ cao (RF: 0,9995) cho thấy mô hình phân loại hoàn hảo lưu lượng NTP/TFTP vs Benign trong nội bộ, nhưng không tổng quát hóa được sang các loại tấn công khác.
 
-Lý giải: NTP và TFTP có đặc trưng rất đặc thù (kích thước phản hồi lớn bất thường, cổng UDP 123/69), khiến mô hình học một biên quyết định hẹp dựa trên đặc trưng giao thức thay vì pattern DDoS chung. Kết quả này nhấn mạnh rằng \textit{kích thước tập huấn luyện lớn không đảm bảo tổng quát hóa tốt nếu tập đó thiếu đa dạng về loại lưu lượng}.
+Điểm đáng chú ý là trong Exp 2, lợi thế bagging của RF biến mất hoàn toàn -- RF, XGB và KNN hội tụ về cùng một mức Gap (0,38--0,39). Điều này có thể giải thích như sau: NTP và TFTP có đặc trưng rất đặc thù (kích thước phản hồi lớn bất thường, cổng UDP 123/69), khiến \textit{toàn bộ} 200.705 mẫu huấn luyện phân bố trong một vùng đặc trưng hẹp, đồng nhất. Khi tập bootstrap của mỗi cây trong RF đều rút từ cùng vùng đặc thù này, mọi cây đều học cùng một biên quyết định hẹp theo giao thức -- cơ chế bagging không còn tạo ra sự đa dạng giữa các cây vì dữ liệu nguồn thiếu đa dạng. Kết quả này nhấn mạnh rằng \textit{kích thước tập huấn luyện lớn không đảm bảo tổng quát hóa tốt nếu tập đó thiếu đa dạng về loại lưu lượng}.
 
 \subsubsection{Phân tích Exp 3 -- Huấn luyện trên G3 (Exploitation)}
 
@@ -138,7 +138,7 @@ Hình~\ref{fig:phase2_heatmap} tóm tắt Test F2 của ba mô hình qua ba thí
     \label{fig:phase2_heatmap}
 \end{figure}
 
-Exp 3 nổi bật với màu đậm nhất, đặc biệt RF đạt giá trị gần 1,0. Exp 1 và Exp 2 có màu nhạt hơn rõ rệt, phản ánh khả năng tổng quát hóa hạn chế khi huấn luyện trên nhóm Reflection.
+Heatmap cho thấy bất đối xứng rõ rệt giữa ba thí nghiệm: Exp 3 nổi bật ở góc phải trên, trong khi Exp 1 và Exp 2 đồng loạt thấp, gợi ý vấn đề tổng quát hóa xuất phát từ đặc tính của nhóm huấn luyện chứ không phải từ mô hình cụ thể.
 
 Hình~\ref{fig:phase2_roc} thể hiện đường cong ROC trên tập test cho từng thí nghiệm.
 
@@ -149,7 +149,7 @@ Hình~\ref{fig:phase2_roc} thể hiện đường cong ROC trên tập test cho 
     \label{fig:phase2_roc}
 \end{figure}
 
-AUC của RF ở Exp 3 đạt 0,999, trong khi các mô hình ở Exp 1 và Exp 2 có đường cong thấp hơn đáng kể, đặc biệt KNN (AUC $\approx$ 0,77--0,80).
+Đường cong ROC tách biệt rõ Exp 3 (góc trên trái) so với Exp 1/2, xác nhận rằng sự suy giảm Test F2 phản ánh giới hạn hệ thống chứ không phải do ngưỡng phân loại. KNN ở Exp 1 và Exp 2 có AUC thấp nhất ($\approx$ 0,77--0,80), cho thấy bản thân xác suất phân loại cũng kém tin cậy ở những kịch bản này.
 
 Hình~\ref{fig:phase2_confusion} thể hiện ma trận nhầm lẫn của mô hình tốt nhất mỗi thí nghiệm.
 
@@ -160,7 +160,7 @@ Hình~\ref{fig:phase2_confusion} thể hiện ma trận nhầm lẫn của mô h
     \label{fig:phase2_confusion}
 \end{figure}
 
-Exp 1\&2 bỏ sót 20--45\% mẫu tấn công (FNR cao), trong khi Exp 3 RF chỉ bỏ sót 1,89\%.
+Ma trận nhầm lẫn làm nổi bật nguồn gốc lỗi: ở Exp 1\&2, phần lớn lỗi là False Negative (tấn công bị phân loại là Benign), trái với Exp 3 nơi cả hai loại lỗi đều gần bằng không. Điều này xác nhận rằng mô hình không học được biên phân tách tổng quát khi tập huấn luyện đơn điệu về giao thức.
 
 Hình~\ref{fig:phase2_cv_boxplot} thể hiện phân phối CV F2 qua 5 fold cho từng thí nghiệm.
 
@@ -231,6 +231,8 @@ Exp 3 (G3$\to$G1+G2) & KNN & 138.714 & 0,08 & 0,0848 & 0,9171 \\
 \end{center}
 \end{table}
 
+Lưu ý: thời gian suy luận của KNN dao động không đơn điệu theo kích thước tập huấn luyện (Exp 3 cao hơn Exp 1 dù train size lớn hơn). Nguyên nhân là sklearn tự động lựa chọn thuật toán tìm kiếm hàng xóm (brute-force, kd-tree, hoặc ball-tree) dựa trên kích thước và mật độ tập huấn luyện, kết hợp với giá trị tham số $k$ được Optuna chọn khác nhau cho từng thí nghiệm. Do đó, thời gian suy luận của KNN không thể so sánh trực tiếp giữa các thí nghiệm.
+
 \subsection{Tổng hợp và nhận xét}
 
 \subsubsection{So sánh ba mô hình}
@@ -244,6 +246,18 @@ Exp 3 (G3$\to$G1+G2) & KNN & 138.714 & 0,08 & 0,0848 & 0,9171 \\
 \subsubsection{Ảnh hưởng của đặc trưng FAMS đến tổng quát hóa}
 
 Kết quả thực nghiệm cho thấy tập 18 đặc trưng FAMS được tối ưu hóa cho bộ dữ liệu Kaggle (chứa nhiều tấn công thể tích như UDP Flood, Syn) phù hợp tốt hơn với G3 (Exploitation) so với G1/G2 (Reflection). Điều này dẫn đến bất đối xứng rõ rệt: tổng quát hóa tốt từ G3 sang G1+G2 (Exp 3), nhưng kém từ G1 hay G2 sang các nhóm còn lại (Exp 1, Exp 2). Hiện tượng này là minh chứng cụ thể cho tầm quan trọng của sự phù hợp giữa phân phối dữ liệu lựa chọn đặc trưng và dữ liệu huấn luyện mô hình trong một pipeline hai giai đoạn.
+
+\subsubsection{Trả lời câu hỏi nghiên cứu}
+
+Dựa trên kết quả thực nghiệm, ba câu hỏi nghiên cứu đặt ra trong Chương~\ref{sec:gioi-thieu} được trả lời như sau:
+
+\begin{enumerate}
+    \item \textbf{Tập đặc trưng FAMS từ Kaggle có hiệu quả trên CIC-DDoS 2019 không?} -- \textit{Có, nhưng không đồng đều.} Tập 18 đặc trưng đạt Test F2 = 0,98 (RF, Exp 3) khi nhóm huấn luyện có đặc trưng tương đồng với Kaggle (Exploitation). Tuy nhiên, hiệu quả giảm rõ rệt (Test F2 = 0,60--0,83) khi nhóm huấn luyện là Reflection, phản ánh sự bất đối xứng giữa phân phối đặc trưng của hai bộ dữ liệu.
+
+    \item \textbf{Mô hình huấn luyện trên một nhóm có tổng quát hóa tốt sang nhóm chưa thấy không?} -- \textit{Phụ thuộc vào tính đa dạng của nhóm huấn luyện.} G3 (Exploitation: Syn, UDP, UDPLag, WebDDoS) tổng quát hóa tốt sang G1+G2 với Gap $\approx$ 0,01. Ngược lại, G1 và G2 -- mỗi nhóm đặc trưng bởi một cơ chế giao thức hẹp -- tổng quát hóa kém với Gap = 0,16--0,39.
+
+    \item \textbf{Mô hình nào tổng quát hóa tốt nhất theo Leave-One-Group-Out?} -- \textbf{Random Forest} nhất quán đạt Test F2 và Gap tốt nhất qua cả ba thí nghiệm, nhờ cơ chế bagging giảm phương sai và tránh overfit vào đặc trưng giao thức đặc thù. XGBoost có AUC cao nhưng Gap lớn hơn RF; KNN phụ thuộc nhiều vào sự tương đồng phân phối train/test.
+\end{enumerate}
 
 \subsubsection{Ý nghĩa thực tiễn}
 

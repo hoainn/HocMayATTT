@@ -1,4 +1,5 @@
 \section{Giới thiệu và Tổng quan về Tấn công DDoS}
+\label{sec:gioi-thieu}
 
 \subsection{Đặt vấn đề}
 
@@ -30,20 +31,20 @@ Mục tiêu là \textbf{bão hòa băng thông} bằng lưu lượng cực lớn
     \item \textbf{DNS:} hệ số khuếch đại lên tới $\sim$54x (truy vấn ANY).
     \item \textbf{NTP:} lên tới $\sim$556x (lệnh \texttt{monlist}).
     \item \textbf{LDAP:} lên tới $\sim$46--70x.
-    \item \textbf{SNMP, NetBIOS, TFTP, MSSQL, SSDP:} hệ số từ 4x đến $\sim$30x.
+    \item \textbf{SNMP, NetBIOS, MSSQL, Portmap:} hệ số từ 4x đến $\sim$30x.
 \end{itemize}
 
-Nhóm tấn công này có đặc điểm lưu lượng chiều về nạn nhân rất lớn, gói tin UDP, port đặc thù của từng giao thức, và nguồn là các máy chủ hợp pháp trên Internet.
+Nhóm tấn công này có đặc điểm lưu lượng chiều về nạn nhân rất lớn, gói tin UDP, port đặc thù của từng giao thức, và nguồn là các máy chủ hợp pháp trên Internet. Trong bộ dữ liệu CIC-DDoS 2019, các loại tấn công này tạo thành nhóm \textbf{G1} (Reflection/Application: DNS, LDAP, MSSQL, NetBIOS, SNMP, Portmap).
 
-\subsubsection{Tấn công giao thức và thể tích -- UDP Flood (Reflection/Volume)}
+\subsubsection{Tấn công khuếch đại thể tích -- NTP/TFTP (Reflection/Volume)}
 
-Nhóm này bao gồm tấn công dựa trên \textbf{UDP Flood} và biến thể \textbf{UDP-Lag}:
+Bên cạnh các tấn công khuếch đại giao thức ứng dụng, một số giao thức tạo ra hệ số khuếch đại thể tích đặc biệt cao:
 \begin{itemize}
-    \item \textbf{UDP Flood:} Gửi liên tục các gói UDP tới cổng ngẫu nhiên; hệ thống đích tốn tài nguyên kiểm tra và phản hồi với ICMP ``port unreachable'', dẫn tới nghẽn mạng và quá tải CPU.
-    \item \textbf{UDP-Lag:} Biến thể gửi gói UDP với nhịp độ không đều, làm cho hệ thống xử lý bị trì hoãn và tạo độ trễ bất thường.
+    \item \textbf{NTP Amplification:} Khai thác lệnh \texttt{monlist} của giao thức NTP để khuếch đại lưu lượng lên tới $\sim$556x -- hệ số cao nhất trong các kỹ thuật phản chiếu phổ biến.
+    \item \textbf{TFTP Amplification:} Giao thức truyền file đơn giản (UDP/69); kẻ tấn công giả mạo IP nạn nhân gửi yêu cầu đọc file, máy chủ TFTP phản hồi nhiều gói dữ liệu liên tiếp về phía nạn nhân.
 \end{itemize}
 
-Trong bộ dữ liệu CIC-DDoS 2019, hai loại tấn công này được ghép cùng tấn công khuếch đại (DNS, NTP, LDAP, \ldots) thành hai nhóm thí nghiệm: \textbf{G1} (Reflection/Application: DNS, LDAP, MSSQL, NTP, NetBIOS, SNMP, SSDP, TFTP) và \textbf{G2} (Reflection/Volume: UDP, UDP-Lag cùng các loại khuếch đại thể tích).
+Trong bộ dữ liệu CIC-DDoS 2019, NTP và TFTP tạo thành nhóm \textbf{G2} (Reflection/Volume) với khối lượng lưu lượng lớn nhất trong ba nhóm thí nghiệm.
 
 \subsubsection{Tấn công khai thác giao thức TCP và tầng ứng dụng (Exploitation)}
 
@@ -53,7 +54,7 @@ Nhóm này khai thác điểm yếu của giao thức hoặc logic ứng dụng 
     \item \textbf{HTTP GET/POST Flood (WebDDoS):} Gửi hàng loạt yêu cầu HTTP hợp lệ về cú pháp với tần suất cao hoặc payload lớn, quá tải máy chủ web ở tầng ứng dụng (Layer 7). Loại tấn công này đặc biệt khó phát hiện vì lưu lượng ``trông giống'' người dùng bình thường.
 \end{itemize}
 
-Trong bộ dữ liệu CIC-DDoS 2019, các loại tấn công này tạo thành nhóm \textbf{G3} (Exploitation: Syn, WebDDoS).
+Trong bộ dữ liệu CIC-DDoS 2019, nhóm này bổ sung thêm \textbf{UDP Flood} và \textbf{UDP-Lag} -- tấn công làm cạn kiệt tài nguyên xử lý gói tin của hệ thống đích -- tạo thành nhóm \textbf{G3} (Exploitation: Syn, UDP, UDPLag, WebDDoS).
 
 \subsection{Thách thức trong phát hiện DDoS bằng học máy}
 
