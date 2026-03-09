@@ -92,11 +92,11 @@ Bảng~\ref{tab:phase2_results} trình bày đầy đủ kết quả của ba th
 \hline
 \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{CV F2} & \textbf{Test F2} & \textbf{Test F1} & \textbf{Recall} & \textbf{FNR} & \textbf{AUC} & \textbf{Gap} \\
 \hline
-Exp 1 (G1$\to$G2+G3) & KNN & 0,9952$\pm$0,0009 & 0,6027 & 0,7081 & 0,5482 & 0,4518 & 0,7733 & +0,3925 \\
+Exp 1 (G1$\to$G2+G3) & KNN & 0,9952$\pm$0,0008 & 0,6027 & 0,7081 & 0,5482 & 0,4518 & 0,7733 & +0,3925 \\
                       & RF  & 0,9972$\pm$0,0006 & 0,8332 & 0,8888 & 0,7999 & 0,2001 & 0,9844 & +0,1640 \\
                       & XGB & 0,9976$\pm$0,0005 & 0,7764 & 0,8474 & 0,7353 & 0,2647 & 0,9887 & +0,2212 \\
 \hline
-Exp 2 (G2$\to$G1+G3) & KNN & 0,9989$\pm$0,0002 & 0,6109 & 0,7150 & 0,5568 & 0,4432 & 0,8013 & +0,3880 \\
+Exp 2 (G2$\to$G1+G3) & KNN & 0,9991$\pm$0,0001 & 0,6215 & 0,7241 & 0,5679 & 0,4321 & 0,7863 & +0,3776 \\
                       & RF  & 0,9995$\pm$0,0001 & 0,6196 & 0,7226 & 0,5658 & 0,4342 & 0,8047 & +0,3799 \\
                       & XGB & 0,9993$\pm$0,0002 & 0,6221 & 0,7247 & 0,5684 & 0,4316 & 0,8989 & +0,3772 \\
 \hline
@@ -117,7 +117,7 @@ Nhóm G1 có kích thước nhỏ nhất trong ba nhóm tấn công -- chỉ 22.
 
 \subsubsection{Phân tích Exp 2 -- Huấn luyện trên G2 (Reflection/Volume)}
 
-Exp 2 cho thấy một trường hợp đáng chú ý: mặc dù G2 có kích thước lớn nhất (200.705 mẫu tấn công, chủ yếu NTP và TFTP), cả ba mô hình đều có Gap lớn tương đương nhau (0,38--0,39) và Test F2 thấp (0,61--0,62). CV F2 cực kỳ cao (RF: 0,9995) cho thấy mô hình phân loại hoàn hảo lưu lượng NTP/TFTP vs Benign trong nội bộ, nhưng không tổng quát hóa được sang các loại tấn công khác.
+Exp 2 cho thấy một trường hợp đáng chú ý: mặc dù G2 có kích thước lớn nhất (200.705 mẫu tấn công, chủ yếu NTP và TFTP), cả ba mô hình đều có Gap lớn tương đương nhau (0,38) và Test F2 thấp (0,62). CV F2 cực kỳ cao (RF: 0,9995) cho thấy mô hình phân loại hoàn hảo lưu lượng NTP/TFTP vs Benign trong nội bộ, nhưng không tổng quát hóa được sang các loại tấn công khác.
 
 Điểm đáng chú ý là trong Exp 2, lợi thế bagging của RF biến mất hoàn toàn -- RF, XGB và KNN hội tụ về cùng một mức Gap (0,38--0,39). Điều này có thể giải thích như sau: NTP và TFTP có đặc trưng rất đặc thù (kích thước phản hồi lớn bất thường, cổng UDP 123/69), khiến \textit{toàn bộ} 200.705 mẫu huấn luyện phân bố trong một vùng đặc trưng hẹp, đồng nhất. Khi tập bootstrap của mỗi cây trong RF đều rút từ cùng vùng đặc thù này, mọi cây đều học cùng một biên quyết định hẹp theo giao thức -- cơ chế bagging không còn tạo ra sự đa dạng giữa các cây vì dữ liệu nguồn thiếu đa dạng. Kết quả này nhấn mạnh rằng \textit{kích thước tập huấn luyện lớn không đảm bảo tổng quát hóa tốt nếu tập đó thiếu đa dạng về loại lưu lượng}.
 
@@ -242,17 +242,17 @@ Về mặt lý thuyết, việc giảm từ 70+ đặc trưng xuống còn 18 đ
 \hline
 \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Train size} & \textbf{T. huấn luyện (s)} & \textbf{T. suy luận (ms/mẫu)} & \textbf{Test F2} \\
 \hline
-Exp 1 (G1$\to$G2+G3) & KNN & 124.225 & 0,06 & 0,1102 & 0,5790 \\
-                      & RF  & 124.225 & 1,00 & 0,0031 & 0,8330 \\
-                      & XGB & 124.225 & 1,96 & 0,0013 & 0,7753 \\
+Exp 1 (G1$\to$G2+G3) & KNN &  84.082 & 0,27 & 0,3148 & 0,6027 \\
+                      & RF  &  84.082 & 5,85 & 0,0161 & 0,8332 \\
+                      & XGB &  84.082 & 1,97 & 0,0034 & 0,7764 \\
 \hline
-Exp 2 (G2$\to$G1+G3) & KNN & 318.116 & 0,20 & 0,1526 & 0,5741 \\
-                      & RF  & 318.116 & 2,53 & 0,0054 & 0,6032 \\
-                      & XGB & 318.116 & 2,62 & 0,0009 & 0,6058 \\
+Exp 2 (G2$\to$G1+G3) & KNN & 261.948 & 1,51 & 0,1760 & 0,6215 \\
+                      & RF  & 261.948 & 1,18 & 0,0027 & 0,6196 \\
+                      & XGB & 261.948 & 13,11 & 0,0082 & 0,6221 \\
 \hline
-Exp 3 (G3$\to$G1+G2) & KNN & 184.692 & 0,09 & 0,0559 & 0,9204 \\
-                      & RF  & 184.692 & 5,73 & 0,0111 & 0,9870 \\
-                      & XGB & 184.692 & 0,83 & 0,0005 & 0,9519 \\
+Exp 3 (G3$\to$G1+G2) & KNN & 138.714 & 0,08 & 0,6512 & 0,9171 \\
+                      & RF  & 138.714 & 4,94 & 0,0106 & 0,9848 \\
+                      & XGB & 138.714 & 4,28 & 0,0011 & 0,9022 \\
 \hline
 \end{tabular}
 \end{adjustbox}
@@ -278,7 +278,7 @@ Kết quả thực nghiệm cho thấy tập 18 đặc trưng FAMS được tố
 Dựa trên kết quả thực nghiệm, ba câu hỏi nghiên cứu đặt ra trong Chương~\ref{sec:gioi-thieu} được trả lời như sau:
 
 \begin{enumerate}
-    \item \textbf{Tập đặc trưng FAMS từ Kaggle có hiệu quả trên CIC-DDoS 2019 không?} -- \textit{Có, nhưng không đồng đều.} Tập 18 đặc trưng đạt Test F2 = 0,98 (RF, Exp 3) khi nhóm huấn luyện có đặc trưng tương đồng với Kaggle (Exploitation). Tuy nhiên, hiệu quả giảm rõ rệt (Test F2 = 0,60--0,83) khi nhóm huấn luyện là Reflection, phản ánh sự bất đối xứng giữa phân phối đặc trưng của hai bộ dữ liệu.
+    \item \textbf{Tập đặc trưng FAMS từ Kaggle có hiệu quả trên CIC-DDoS 2019 không?} -- \textit{Có, nhưng không đồng đều.} Tập 18 đặc trưng đạt Test F2 = 0,98 (RF, Exp 3) khi nhóm huấn luyện có đặc trưng tương đồng với Kaggle (Exploitation). Tuy nhiên, hiệu quả giảm rõ rệt (Test F2 = 0,62--0,83) khi nhóm huấn luyện là Reflection, phản ánh sự bất đối xứng giữa phân phối đặc trưng của hai bộ dữ liệu.
 
     \item \textbf{Mô hình huấn luyện trên một nhóm có tổng quát hóa tốt sang nhóm chưa thấy không?} -- \textit{Phụ thuộc vào tính đa dạng của nhóm huấn luyện.} G3 (Exploitation: Syn, UDP, UDPLag, WebDDoS) tổng quát hóa tốt sang G1+G2 với Gap $\approx$ 0,01. Ngược lại, G1 và G2 -- mỗi nhóm đặc trưng bởi một cơ chế giao thức hẹp -- tổng quát hóa kém với Gap = 0,16--0,39.
 
