@@ -1,0 +1,695 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+
+% ── Theme ───────────────────────────────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+% ── Packages ────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage{lmodern}
+\usepackage[vietnamese]{babel}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{colortbl}
+
+% ── Colors ──────────────────────────────────────────────────────────────────
+\definecolor{myblue}{RGB}{0,84,166}
+\definecolor{mygreen}{RGB}{0,128,64}
+\definecolor{myorange}{RGB}{204,85,0}
+\definecolor{mygray}{RGB}{90,90,90}
+\definecolor{highlight}{RGB}{255,240,0}
+
+% ── Helpers ─────────────────────────────────────────────────────────────────
+\newcommand{\good}[1]{\textcolor{mygreen}{\textbf{#1}}}
+\newcommand{\bad}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\sidenote}[1]{\textcolor{mygray}{\small #1}}
+
+% ── Title ────────────────────────────────────────────────────────────────────
+\title[Phát hiện DDoS bằng ML]{%
+  Phát hiện Tấn công DDoS bằng Học máy:\\
+  Pipeline FAMS + Leave-One-Group-Out\\
+  trên CIC-DDoS 2019}
+\subtitle{Báo cáo Học máy Ứng dụng}
+\author{Nhóm nghiên cứu}
+\institute{Học viện Kỹ thuật}
+\date{Tháng 3, 2026}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+% ════════════════════════════════════════════════════════════════════════════
+
+% ── Slide 1: Title ──────────────────────────────────────────────────────────
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ── Slide 2: Outline ────────────────────────────────────────────────────────
+\begin{frame}{Nội dung trình bày}
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Giới thiệu}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{Tấn công DDoS là gì?}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+      \begin{block}{Định nghĩa}
+        Tấn công DDoS (Distributed Denial of Service) điều phối
+        \textbf{nhiều nguồn phân tán} (botnet) để làm gián đoạn
+        \textbf{tính sẵn sàng} của dịch vụ.
+      \end{block}
+      \vspace{0.3em}
+      \begin{alertblock}{Hậu quả}
+        \begin{itemize}
+          \item Thiệt hại tài chính trực tiếp
+          \item Mất uy tín tổ chức
+          \item Gián đoạn hạ tầng thiết yếu
+        \end{itemize}
+      \end{alertblock}
+    \column{0.42\textwidth}
+      \begin{block}{Ba nhóm tấn công (CIC-DDoS 2019)}
+        \small
+        \begin{tabular}{lp{3.5cm}}
+          \textbf{G1} & Reflection/Application\\
+                      & DNS, LDAP, MSSQL,\\
+                      & NetBIOS, SNMP, Portmap\\[4pt]
+          \textbf{G2} & Reflection/Volume\\
+                      & NTP, TFTP\\[4pt]
+          \textbf{G3} & Exploitation/Flooding\\
+                      & Syn, UDP, UDPLag,\\
+                      & WebDDoS\\
+        \end{tabular}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Thách thức phát hiện DDoS bằng học máy}
+  \begin{enumerate}
+    \item \textbf{Đa dạng loại tấn công} --- volumetric, protocol, application-layer\\
+    \sidenote{Mỗi nhóm có phân phối lưu lượng rất khác nhau}
+    \vspace{0.4em}
+    \item \textbf{Khả năng tổng quát hóa} --- mô hình cần phát hiện tấn công \emph{mới chưa thấy}\\
+    \sidenote{Câu hỏi trọng tâm của báo cáo này}
+    \vspace{0.4em}
+    \item \textbf{Mất cân bằng lớp} --- lưu lượng bình thường $\gg$ lưu lượng tấn công\\
+    \sidenote{Dùng F2-score thay vì Accuracy}
+    \vspace{0.4em}
+    \item \textbf{Lựa chọn đặc trưng} --- 70+ đặc trưng, nhiều đặc trưng dư thừa\\
+    \sidenote{Giải quyết bằng khung FAMS (Phase 1)}
+  \end{enumerate}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Câu hỏi nghiên cứu}
+  \begin{block}{}
+    \begin{enumerate}
+      \item Tập đặc trưng FAMS từ bộ Kaggle có \textbf{hiệu quả trên CIC-DDoS 2019}?
+      \vspace{0.5em}
+      \item Mô hình huấn luyện trên một nhóm có \textbf{tổng quát hóa tốt} sang nhóm chưa thấy?
+      \vspace{0.5em}
+      \item Trong KNN, RF, XGB --- \textbf{mô hình nào tổng quát hóa tốt nhất} theo LOGO?
+    \end{enumerate}
+  \end{block}
+  \vspace{0.5em}
+  \begin{center}
+    \textit{$\Rightarrow$ Trả lời qua thiết kế \textbf{Leave-One-Group-Out (LOGO)} trên CIC-DDoS 2019}
+  \end{center}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Pipeline hai giai đoạn}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{Tổng quan pipeline}
+  \begin{columns}[T]
+    \column{0.03\textwidth}
+    \column{0.47\textwidth}
+      \textcolor{myblue}{\textbf{Phase 1 --- Lựa chọn đặc trưng}}
+      \vspace{0.3em}
+      \begin{center}
+        \fcolorbox{myblue}{blue!10}{\parbox{0.85\linewidth}{\centering\small Kaggle DDoS\\(CIC 2016/17/18)}}\\[0.3em]
+        $\Downarrow$\\[0.3em]
+        \fcolorbox{myblue}{blue!20}{\parbox{0.85\linewidth}{\centering\small FAMS\\(5 phương pháp + bỏ phiếu)}}\\[0.3em]
+        $\Downarrow$\\[0.3em]
+        \fcolorbox{myblue}{blue!35}{\parbox{0.85\linewidth}{\centering\small\textbf{18 đặc trưng}\\(votes $\geq 3$)}}
+      \end{center}
+    \column{0.03\textwidth}
+      \vspace{2.8em}
+      \begin{center}
+        \Large $\Rightarrow$
+      \end{center}
+    \column{0.44\textwidth}
+      \textcolor{myorange}{\textbf{Phase 2 --- Huấn luyện LOGO}}
+      \vspace{0.3em}
+      \begin{center}
+        \fcolorbox{myorange}{orange!10}{\parbox{0.85\linewidth}{\centering\small CIC-DDoS 2019\\(17 Parquet)}}\\[0.3em]
+        $\Downarrow$\\[0.3em]
+        \fcolorbox{myorange}{orange!20}{\parbox{0.85\linewidth}{\centering\small LOGO Training\\(KNN / RF / XGB)}}\\[0.3em]
+        $\Downarrow$\\[0.3em]
+        \fcolorbox{myorange}{orange!35}{\parbox{0.85\linewidth}{\centering\small\textbf{Đánh giá}\\F2, Gap, FNR}}
+      \end{center}
+  \end{columns}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 1 --- Lựa chọn đặc trưng FAMS}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{Khung FAMS: bỏ phiếu đa phương pháp}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+      \textbf{5 phương pháp lựa chọn đặc trưng:}
+      \vspace{0.3em}
+      \begin{itemize}
+        \item \textcolor{myblue}{\textbf{Filter:}} Variance Threshold, Mutual Information
+        \item \textcolor{myorange}{\textbf{Wrapper:}} RFE (Recursive Feature Elimination)
+        \item \textcolor{mygreen}{\textbf{Embedded:}} Lasso L1, RF Feature Importance
+      \end{itemize}
+      \vspace{0.6em}
+      \textbf{Cơ chế bỏ phiếu:}
+      \[
+        \mathcal{F}_{opt} = \left\{ f_j \;\middle|\; \sum_{k=1}^{5} \mathbf{1}[f_j \in \text{top-}25_k] \geq \tau \right\}
+      \]
+
+    \column{0.42\textwidth}
+      \begin{block}{Hai ngưỡng so sánh}
+        \centering
+        \begin{tabular}{lcc}
+          \toprule
+          Ngưỡng $\tau$ & \#Đặc trưng & F2 TB\\
+          \midrule
+          $\geq 3$ & \good{18} & \good{0,9956}\\
+          $> 3$    & 6          & 0,9840\\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \vspace{0.4em}
+      \begin{alertblock}{Lựa chọn}
+        \textbf{18 đặc trưng (votes $\geq 3$)} được dùng cho Phase 2\\
+        \small(giảm 75\% số chiều so với 70+ đặc trưng gốc)
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Phase 1: Kết quả đánh giá trên Kaggle}
+  \begin{table}
+    \centering
+    \small
+    \caption{Hiệu năng phân loại theo ngưỡng bỏ phiếu FAMS}
+    \begin{tabular}{llrrrrr}
+      \toprule
+      \textbf{Ngưỡng} & \textbf{Mô hình} & \textbf{Acc} & \textbf{Prec} & \textbf{Recall} & \textbf{F2} & \textbf{FNR}\\
+      \midrule
+      \multirow{3}{*}{$\geq3$ (18 ft.)}
+        & KNN & 0,993 & 0,992 & 0,994 & 0,993 & 0,006 \\
+        & RF  & 0,997 & 0,998 & 0,997 & 0,997 & 0,003 \\
+        & XGB & 0,997 & 0,998 & 0,996 & 0,997 & 0,004 \\
+      \midrule
+      \multirow{3}{*}{$>3$ (6 ft.)}
+        & KNN & 0,983 & 0,978 & 0,987 & 0,985 & 0,013 \\
+        & RF  & 0,982 & 0,981 & 0,981 & 0,981 & 0,019 \\
+        & XGB & 0,983 & 0,977 & 0,988 & 0,986 & 0,012 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.3em}
+  \begin{center}
+    \small FNR của RF giảm từ \bad{0,0188} xuống \good{0,0034} khi tăng từ 6 lên 18 đặc trưng
+  \end{center}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{18 đặc trưng FAMS được chọn}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \small
+      \begin{enumerate}
+        \item Fwd Packet Length Mean
+        \item Fwd Packet Length Max
+        \item Fwd Packets Length Total
+        \item Fwd Seg Size Min
+        \item Flow IAT Min
+        \item Fwd Packet Length Std
+        \item Subflow Bwd Bytes
+        \item Packet Length Max
+        \item Init Bwd Win Bytes
+      \end{enumerate}
+    \column{0.48\textwidth}
+      \small
+      \begin{enumerate}
+        \setcounter{enumi}{9}
+        \item Packet Length Std
+        \item Subflow Fwd Bytes
+        \item Fwd Header Length
+        \item Flow Packets/s
+        \item Bwd Packet Length Max
+        \item Bwd Packets Length Total
+        \item Avg Fwd Segment Size
+        \item Subflow Fwd Packets
+        \item Bwd Packet Length Std
+      \end{enumerate}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{center}
+    \sidenote{Chủ yếu: kích thước gói tin, tốc độ luồng, phân phối forward/backward}
+  \end{center}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Phase 2 --- Thiết kế Leave-One-Group-Out}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{CIC-DDoS 2019: Dữ liệu và phân nhóm}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+      \begin{block}{Bộ dữ liệu}
+        \begin{itemize}
+          \item 17 file Parquet, 388.505 dòng (sau tiền xử lý)
+          \item Đặc trưng: chỉ dùng \textbf{18 đặc trưng FAMS}
+          \item Chuẩn hóa: \textbf{RobustScaler} (fit trên train)
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{Phân nhóm tấn công}
+        \small
+        \begin{tabular}{lll}
+          \textbf{G1} & Refl/App & 22.839 mẫu\\
+          \textbf{G2} & Refl/Vol & 200.705 mẫu\\
+          \textbf{G3} & Exploit  & 77.471 mẫu\\
+          \textbf{Benign} &      & 87.490 mẫu\\
+        \end{tabular}
+      \end{block}
+    \column{0.42\textwidth}
+      \begin{alertblock}{Thiết kế LOGO}
+        \small
+        \begin{itemize}
+          \item \textbf{Exp 1:} Train G1 $\to$ Test G2+G3\\
+                Train: 84.082 / Test: 304.423
+          \vspace{0.2em}
+          \item \textbf{Exp 2:} Train G2 $\to$ Test G1+G3\\
+                Train: 261.948 / Test: 126.557
+          \vspace{0.2em}
+          \item \textbf{Exp 3:} Train G3 $\to$ Test G1+G2\\
+                Train: 138.714 / Test: 249.791
+        \end{itemize}
+      \end{alertblock}
+      \vspace{0.3em}
+      \sidenote{Benign 70\% cố định cho train, 30\% cho test --- dùng chung ba Exp}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Quy trình huấn luyện và tối ưu siêu tham số}
+  \begin{enumerate}
+    \item \textbf{Optuna TPE} --- 30 trials, mục tiêu tối đa \textbf{F2 (5-fold StratifiedKFold)}\\
+    \sidenote{Không gian tìm kiếm: $k$, metric (KNN); n\_estimators, depth, features (RF/XGB)}
+    \vspace{0.4em}
+    \item \textbf{Xử lý mất cân bằng lớp}
+    \begin{itemize}
+      \item RF: \texttt{class\_weight='balanced'}
+      \item XGB: \texttt{scale\_pos\_weight}
+      \item KNN: không hỗ trợ tường minh
+    \end{itemize}
+    \vspace{0.4em}
+    \item \textbf{Huấn luyện lại} trên toàn bộ train sau khi tìm được best params
+    \vspace{0.4em}
+    \item \textbf{Đánh giá} trên tập test (nhóm chưa thấy trong huấn luyện)
+  \end{enumerate}
+  \vspace{0.5em}
+  \begin{block}{Chỉ số đánh giá chính}
+    \centering
+    \textbf{F2-score}, F1, Recall, FNR, AUC, \textbf{Gap} = CV F2 $-$ Test F2
+  \end{block}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Kết quả thực nghiệm}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{Kết quả tổng hợp: Leave-One-Group-Out}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{llrrrrr}
+      \toprule
+      \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{CV F2} & \textbf{Test F2} & \textbf{Recall} & \textbf{FNR} & \textbf{Gap}\\
+      \midrule
+      \multirow{3}{*}{Exp 1 (G1$\to$G2+G3)}
+        & KNN  & 0,9952 & \bad{0,603}  & 0,548 & 0,452 & +0,39 \\
+        & RF   & 0,9972 & \good{0,833} & 0,800 & 0,200 & +0,16 \\
+        & XGB  & 0,9976 & 0,776        & 0,735 & 0,265 & +0,22 \\
+      \midrule
+      \multirow{3}{*}{Exp 2 (G2$\to$G1+G3)}
+        & KNN  & 0,9991 & \bad{0,622}  & 0,568 & 0,432 & +0,38 \\
+        & RF   & 0,9995 & \bad{0,620}  & 0,566 & 0,434 & +0,38 \\
+        & XGB  & 0,9993 & \bad{0,622}  & 0,568 & 0,432 & +0,38 \\
+      \midrule
+      \multirow{3}{*}{Exp 3 (G3$\to$G1+G2)}
+        & KNN  & 0,9937 & 0,917        & 0,899 & 0,101 & +0,08 \\
+        & \textbf{RF}  & \textbf{0,9981} & \good{\textbf{0,985}} & \textbf{0,981} & \good{\textbf{0,019}} & \good{\textbf{+0,01}} \\
+        & XGB  & 0,9978 & 0,902        & 0,881 & 0,119 & +0,10 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{-0.2em}
+  \begin{center}
+    \small \textbf{RF Exp 3}: Test F2 = 0,985; Gap = +0,013; FNR = \good{1,9\%}
+  \end{center}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Phân tích: Exp 1 --- Huấn luyện trên G1}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Bối cảnh}
+        \begin{itemize}
+          \item G1 nhỏ nhất: 22.839 mẫu tấn công
+          \item Đặc trưng đồng nhất: phản xạ giao thức ứng dụng (DNS/LDAP/MSSQL)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{alertblock}{Kết quả}
+        \begin{itemize}
+          \item KNN: Test F2 = \bad{0,60}, Gap +0,39
+          \item RF:  Test F2 = \good{0,83}, Gap +0,16
+          \item XGB: Test F2 = 0,78, Gap +0,22
+        \end{itemize}
+      \end{alertblock}
+    \column{0.47\textwidth}
+      \begin{block}{Giải thích}
+        Mô hình học ``nhận dạng giao thức cụ thể'' thay vì pattern DDoS tổng quát.
+        RF tổng quát hóa tốt hơn nhờ \textbf{bagging} đa dạng hóa biên quyết định.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Phân tích: Exp 2 --- Huấn luyện trên G2}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Bối cảnh}
+        \begin{itemize}
+          \item G2 lớn nhất: 200.705 mẫu
+          \item Nhưng \textbf{rất đồng nhất}: chỉ NTP (UDP/123) và TFTP (UDP/69)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{alertblock}{Kết quả đáng chú ý}
+        \begin{itemize}
+          \item Cả 3 mô hình: Test F2 $\approx$ \bad{0,62}
+          \item Gap đồng loạt +0,38
+          \item \textbf{Lợi thế bagging của RF biến mất!}
+        \end{itemize}
+      \end{alertblock}
+    \column{0.47\textwidth}
+      \begin{block}{Bài học quan trọng}
+        \textit{Kích thước tập train lớn \textbf{không đảm bảo} tổng quát hóa tốt nếu tập đó \textbf{thiếu đa dạng} về loại lưu lượng.}
+        \vspace{0.4em}
+
+        Khi toàn bộ 200k mẫu phân bố trong vùng đặc trưng hẹp (NTP/TFTP), mọi cây trong RF đều học cùng biên quyết định hẹp.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Phân tích: Exp 3 --- Huấn luyện trên G3 (\textit{Best case})}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Bối cảnh}
+        \begin{itemize}
+          \item G3 đa dạng: Syn, UDP, UDPLag, WebDDoS
+          \item Bao gồm cả tấn công \textbf{thể tích} lẫn \textbf{tầng ứng dụng}
+          \item Tương đồng với dữ liệu Kaggle (Phase 1)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{Kết quả xuất sắc}
+        \begin{itemize}
+          \item RF: Test F2 = \good{\textbf{0,985}}, Gap = \good{+0,013}
+          \item FNR = \good{1,89\%} --- phát hiện hơn 98\% tấn công từ G1+G2
+        \end{itemize}
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{alertblock}{Lý giải}
+        Đặc trưng học từ G3 \textbf{đa dạng về kích thước gói, tốc độ luồng, tỷ lệ forward/backward} → tổng quát hóa tốt sang G1+G2.
+
+        \vspace{0.4em}
+        FAMS Phase 1 cũng dùng Kaggle chứa UDP/Syn Flood → tập 18 đặc trưng phù hợp với G3.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Hiệu quả tính toán}
+  \begin{table}
+    \centering
+    \small
+    \caption{Thời gian huấn luyện và suy luận (KNN dùng \texttt{algorithm=ball\_tree})}
+    \begin{tabular}{llrrrr}
+      \toprule
+      \textbf{Thí nghiệm} & \textbf{Mô hình} & \textbf{Train size} & \textbf{Train (s)} & \textbf{Infer (ms/mẫu)} & \textbf{Test F2}\\
+      \midrule
+      \multirow{3}{*}{Exp 1 (84k)}
+        & KNN  & 84.082  & 0,27  & 0,3148 & 0,603 \\
+        & RF   & 84.082  & 5,85  & 0,0161 & 0,833 \\
+        & XGB  & 84.082  & 1,97  & \good{0,0034} & 0,776 \\
+      \midrule
+      \multirow{3}{*}{Exp 2 (262k)}
+        & KNN  & 261.948 & 1,51  & 0,1760 & 0,622 \\
+        & RF   & 261.948 & 1,18  & \good{0,0027} & 0,620 \\
+        & XGB  & 261.948 & 13,11 & 0,0082 & 0,622 \\
+      \midrule
+      \multirow{3}{*}{Exp 3 (139k)}
+        & KNN  & 138.714 & 0,08  & 0,6512 & 0,917 \\
+        & RF   & 138.714 & 4,94  & 0,0106 & \good{0,985} \\
+        & XGB  & 138.714 & 4,28  & \good{0,0011} & 0,902 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.2em}
+  \sidenote{RF và XGB: thời gian suy luận $<$ 0,02 ms/mẫu --- phù hợp phát hiện thời gian thực}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Thảo luận}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{So sánh ba mô hình}
+  \begin{columns}[T]
+    \column{0.32\textwidth}
+      \begin{block}{\centering Random Forest}
+        \centering
+        \good{Tốt nhất tổng quát}\\
+        \vspace{0.3em}
+        \small
+        Test F2 cao nhất ở Exp 1 (0,83) và Exp 3 (0,985).\\
+        Gap nhỏ nhất ở Exp 3 (+0,013).\\
+        Bagging giảm phương sai hiệu quả.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{\centering XGBoost}
+        \centering
+        \textcolor{myorange}{AUC cao}\\
+        \vspace{0.3em}
+        \small
+        AUC = 0,99 ở Exp 1, Exp 3.\\
+        Nhưng Gap lớn hơn RF ở Exp 3 (+0,096 vs +0,013).\\
+        Học pattern phức tạp, dễ overfit.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{\centering KNN}
+        \centering
+        \bad{Phụ thuộc phân phối}\\
+        \vspace{0.3em}
+        \small
+        Test F2 thấp nhất ở Exp 1, 2 ($\approx$ 0,61).\\
+        Cải thiện tốt khi train/test tương đồng (Exp 3: 0,92).\\
+        Suy luận chậm hơn RF/XGB.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Trả lời câu hỏi nghiên cứu}
+  \begin{block}{Q1: FAMS Kaggle có hiệu quả trên CIC-DDoS 2019?}
+    \textit{Có, nhưng không đồng đều.} Test F2 = 0,985 (RF, Exp 3) khi nhóm train tương đồng với Kaggle. Giảm rõ rệt (0,62--0,83) khi nhóm train là Reflection.
+  \end{block}
+  \vspace{0.3em}
+  \begin{block}{Q2: Tổng quát hóa sang nhóm chưa thấy?}
+    \textit{Phụ thuộc tính đa dạng của nhóm train.} G3 (đa dạng) → Gap $\approx$ 0,01. G1, G2 (đơn điệu giao thức) → Gap = 0,16--0,39.
+  \end{block}
+  \vspace{0.3em}
+  \begin{block}{Q3: Mô hình nào tốt nhất theo LOGO?}
+    \textbf{Random Forest} --- nhất quán Test F2 và Gap tốt nhất qua cả ba thí nghiệm.
+  \end{block}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Phát hiện quan trọng: Đa dạng $>$ Kích thước}
+  \begin{center}
+    \Large
+    \textbf{Tính đa dạng của dữ liệu huấn luyện}\\
+    --- không phải kích thước ---\\
+    \textbf{là yếu tố quyết định khả năng tổng quát hóa}
+  \end{center}
+  \vspace{0.5em}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+      \begin{alertblock}{Bằng chứng}
+        G2 (200k mẫu, nhưng chỉ NTP+TFTP):\\
+        Test F2 = \bad{0,62}\\[0.3em]
+        G3 (78k mẫu, nhưng Syn+UDP+WebDDoS):\\
+        Test F2 = \good{0,985}
+      \end{alertblock}
+    \column{0.47\textwidth}
+      \begin{block}{Ý nghĩa thực tiễn}
+        Chiến lược thu thập dữ liệu huấn luyện nên ưu tiên \textbf{đa dạng loại tấn công} hơn \textbf{số lượng mẫu thuần túy}.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Kết luận}
+% ════════════════════════════════════════════════════════════════════════════
+
+\begin{frame}{Kết luận}
+  \begin{block}{Đóng góp chính}
+    \begin{enumerate}
+      \item \textbf{Lựa chọn đặc trưng FAMS đa phương pháp:} 18 đặc trưng (votes $\geq 3$) đạt F2 TB = 0,9956 trên Kaggle; giảm 75\% số chiều.
+
+      \vspace{0.4em}
+      \item \textbf{Đánh giá LOGO trên CIC-DDoS 2019:}
+        \begin{itemize}
+          \item RF Exp 3: Test F2 = 0,985, FNR = 1,89\%, Gap $\approx$ 0 --- không overfit nhóm
+          \item Exp 1\&2: Gap lớn (0,16--0,39) do đặc trưng giao thức đặc thù không chuyển giao tốt
+          \item Random Forest nhất quán tốt nhất trong ba mô hình
+        \end{itemize}
+    \end{enumerate}
+  \end{block}
+  \vspace{0.3em}
+  \begin{alertblock}{Phát hiện cốt lõi}
+    \textbf{Đa dạng dữ liệu huấn luyện $>$ Kích thước} --- quyết định khả năng tổng quát hóa
+  \end{alertblock}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Hạn chế và hướng phát triển}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \begin{alertblock}{Hạn chế}
+        \begin{itemize}
+          \item Dữ liệu phòng thí nghiệm (chưa có TLS, IPv6)
+          \item Bất đối xứng tổng quát hóa: tốt từ G3 sang G1+G2, kém chiều ngược lại
+          \item Mô hình tĩnh, chưa xử lý \textit{concept drift}
+          \item WebDDoS chỉ 51 mẫu trong G3
+        \end{itemize}
+      \end{alertblock}
+    \column{0.48\textwidth}
+      \begin{block}{Hướng phát triển}
+        \begin{itemize}
+          \item Giải quyết bất đối xứng tổng quát hóa (transfer learning)
+          \item Huấn luyện đa nhóm với tỷ lệ mẫu tối ưu
+          \item Đánh giá trên dữ liệu thực (TLS, cloud)
+          \item Online Learning / periodic retraining
+          \item SHAP để giải thích feature importance
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ────────────────────────────────────────────────────────────────────────────
+\begin{frame}
+  \begin{center}
+    \vspace{1em}
+    {\Large\textbf{Cảm ơn!}}\\[1em]
+    \normalsize
+    Code: \texttt{phase1\_feature\_selection.ipynb}\\
+    \texttt{phase2\_model\_training.ipynb}\\[1em]
+    {\large Câu hỏi và thảo luận?}
+  \end{center}
+\end{frame}
+
+% ════════════════════════════════════════════════════════════════════════════
+% Backup slides
+% ════════════════════════════════════════════════════════════════════════════
+\appendix
+
+\begin{frame}{Siêu tham số tốt nhất (Optuna TPE, 30 trials)}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{llp{7.5cm}}
+      \toprule
+      \textbf{Exp} & \textbf{Mô hình} & \textbf{Siêu tham số tốt nhất}\\
+      \midrule
+      \multirow{3}{*}{Exp 1}
+        & KNN  & \texttt{n\_neighbors=3, weights=distance} \\
+        & RF   & \texttt{n\_estimators=100, max\_depth=19, min\_samples\_split=2, max\_features=log2} \\
+        & XGB  & \texttt{n\_estimators=500, max\_depth=7, lr=0.035, subsample=0.785} \\
+      \midrule
+      \multirow{3}{*}{Exp 2}
+        & KNN  & \texttt{n\_neighbors=5, weights=distance} \\
+        & RF   & \texttt{n\_estimators=150, max\_depth=18, min\_samples\_split=2, max\_features=log2} \\
+        & XGB  & \texttt{n\_estimators=450, max\_depth=7, lr=0.094, subsample=0.999} \\
+      \midrule
+      \multirow{3}{*}{Exp 3}
+        & KNN  & \texttt{n\_neighbors=3, weights=distance} \\
+        & RF   & \texttt{n\_estimators=500, max\_depth=15, min\_samples\_split=5, max\_features=log2} \\
+        & XGB  & \texttt{n\_estimators=200, max\_depth=6, lr=0.133, subsample=0.918} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \sidenote{KNN cố định \texttt{algorithm=ball\_tree} cho mọi thí nghiệm}
+\end{frame}
+
+\begin{frame}{F$\beta$-score: tại sao chọn F2?}
+  \[
+    F_\beta = (1+\beta^2)\, \frac{\text{Precision} \times \text{Recall}}{\beta^2 \cdot \text{Precision} + \text{Recall}}
+  \]
+  \begin{itemize}
+    \item $\beta = 1$ (F1): cân bằng Precision và Recall
+    \item $\beta = 2$ (F2): \textbf{ưu tiên Recall gấp đôi Precision}
+  \end{itemize}
+  \vspace{0.5em}
+  \begin{block}{Lý do chọn F2 trong phát hiện DDoS}
+    Bỏ sót tấn công (False Negative, FNR cao) → hậu quả nghiêm trọng hơn\\
+    báo động nhầm (False Positive).\\
+    F2 làm mục tiêu Optuna → khuyến khích Recall cao.
+  \end{block}
+\end{frame}
+
+\begin{frame}{RobustScaler: tại sao không dùng StandardScaler?}
+  \[
+    x_{\text{RobustScaler}} = \frac{x - Q_2(x)}{Q_3(x) - Q_1(x)}
+  \]
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+      \begin{block}{StandardScaler}
+        Dùng mean và std → \textbf{nhạy với ngoại lai}\\
+        Lưu lượng burst traffic có thể làm lệch mean đáng kể
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{RobustScaler}
+        Dùng trung vị ($Q_2$) và IQR ($Q_3-Q_1$) → \textbf{bền với ngoại lai}\\
+        Phù hợp dữ liệu lưu lượng mạng
+      \end{block}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{alertblock}{Quan trọng}
+    Scaler được \textit{fit} chỉ trên tập train → transform cả train và test\\
+    $\Rightarrow$ tránh data leakage
+  \end{alertblock}
+\end{frame}
+
+\end{document}
